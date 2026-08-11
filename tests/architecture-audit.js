@@ -27,6 +27,12 @@ assert.equal(bootstrap.includes("register('FinanceManager'"), true);
 assert.equal(bootstrap.includes("register('DeadlineManager'"), true);
 assert.equal(read('ui/AppShell.js').includes('mountNotificationCenter'), true, 'AppShell must delegate notifications');
 assert.equal(read('ui/components/NotificationCenter.js').includes('app.state.subscribe(render)'), true, 'notification center must react to state changes');
+const appShell = read('ui/AppShell.js');
+assert.equal(
+  appShell.indexOf("closest('.open-project, [data-open-project]')") < appShell.indexOf("closest('button, input, select, textarea, a')"),
+  true,
+  'project open controls must be handled before the generic interactive-element guard'
+);
 assert.equal(bootstrap.indexOf("register('FinanceEngine'") < bootstrap.indexOf("register('FinanceManager'"), true);
 assert.equal(bootstrap.includes('MemoryAdapter'), false, 'production bootstrap must not use memory fallback');
 

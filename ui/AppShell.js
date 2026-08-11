@@ -91,14 +91,19 @@ export function renderAppShell(root, app, config) {
       (routes[workspaceReturnRoute] || routes.projects)();
       return;
     }
-    if (event.target.closest('button, input, select, textarea, a')) return;
     if (event.target.closest('[data-open-task]')) {
       routes.tasks();
       return;
     }
-    const button = event.target.closest('.open-project, .project-card, [data-open-project]');
-    if (!button) return;
-    const id = button.dataset.projectId || button.closest('[data-project-id]')?.dataset.projectId;
+    const projectTarget = event.target.closest('.open-project, [data-open-project]');
+    if (projectTarget) {
+      const id = projectTarget.dataset.projectId || projectTarget.closest('[data-project-id]')?.dataset.projectId;
+      if (id) openProject(id);
+      return;
+    }
+    if (event.target.closest('button, input, select, textarea, a')) return;
+    const projectCard = event.target.closest('.project-card');
+    const id = projectCard?.dataset.projectId;
     if (id) openProject(id);
   });
 

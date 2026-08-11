@@ -6,6 +6,7 @@ import { renderClientsView } from './components/ClientsView.js';
 import { renderTasksView } from './components/TasksView.js';
 import { renderSearchResults } from './components/SearchResults.js';
 import { createModalController } from './components/Modal.js';
+import { renderFinanceView } from './components/FinanceView.js';
 
 export function renderAppShell(root, app, config) {
   const ui = createUIManager(app);
@@ -58,7 +59,7 @@ export function renderAppShell(root, app, config) {
     projects: () => navigateTo('projects', 'ProjectsView', renderProjectsView),
     clients: () => navigateTo('clients', 'ClientsView', renderClientsView),
     tasks: () => navigateTo('tasks', 'TasksView', renderTasksView),
-    finance: () => navigateTo('finance', 'FinanceView', renderHomeDashboard)
+    finance: () => navigateTo('finance', 'FinanceView', renderFinanceView)
   };
 
   function navigateTo(route, name, render) {

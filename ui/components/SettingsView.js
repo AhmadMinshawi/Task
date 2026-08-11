@@ -3,20 +3,41 @@ export function renderSettingsView(root, app) {
     <div class="page-heading"><div><span class="eyebrow">Workspace</span><h1>Settings</h1></div></div>
     <div class="settings-stack">
       <section class="dashboard-card"><div class="dashboard-card-head"><div><span class="eyebrow">Archive</span><h2>Archived items</h2></div></div><div class="settings-groups" data-archives></div></section>
-      <section class="dashboard-card"><div class="dashboard-card-head"><div><span class="eyebrow">Project basket</span><h2>Deleted projects</h2></div><button class="secondary-action danger-action" type="button" data-empty-trash>Empty basket</button></div><p class="settings-note">Deleted projects stay here until you restore them or empty the basket.</p><div class="settings-list" data-trash></div></section>
+      <section class="dashboard-card trash-group" data-trash-group aria-expanded="false"><div class="dashboard-card-head" data-toggle-trash role="button" tabindex="0"><div><span class="eyebrow">Project basket</span><h2>Deleted projects <small data-trash-count></small></h2></div><span class="group-chevron">⌄</span></div><div data-trash-content hidden><p class="settings-note">Deleted projects stay here until you restore them or delete them permanently.</p><div class="settings-list" data-trash></div><div class="trash-footer"><button class="secondary-action danger-action" type="button" data-empty-trash>Empty basket</button></div></div></section>
       <section class="dashboard-card settings-placeholder"><span class="eyebrow">More settings</span><h2>Workspace options</h2><p>New account, appearance and workflow options can be added here next.</p></section>
     </div>
   `;
 
   const render = () => {
     renderArchives(root.querySelector('[data-archives]'), app.state.get());
-    renderTrash(root.querySelector('[data-trash]'), app.state.get());
+    const state = app.state.get();
+    renderTrash(root.querySelector('[data-trash]'), state);
+    root.querySelector('[data-trash-count]').textContent = `(${state.projects.filter(project => project.deletedAt).length})`;
   };
 
   const handleClick = event => {
     const action = event.target.closest('[data-settings-action]');
     if (action) {
       applyAction(app, action.dataset.settingsAction, action.dataset.type, action.dataset.id);
+      return;
+    }
+    const row = event.target.closest('[data-archive-item]');
+    if (row) {
+      showArchivedItem(app, row.dataset.type, row.dataset.id);
+      return;
+    }
+    const group = event.target.closest('[data-toggle-archive-group]')?.closest('[data-archive-group]');
+    if (group) {
+      const isOpen = group.getAttribute('aria-expanded') === 'true';
+      group.setAttribute('aria-expanded', String(!isOpen));
+      group.querySelector('[data-group-items]').hidden = isOpen;
+      return;
+    }
+    const trashGroup = event.target.closest('[data-toggle-trash]')?.closest('[data-trash-group]');
+    if (trashGroup) {
+      const isOpen = trashGroup.getAttribute('aria-expanded') === 'true';
+      trashGroup.setAttribute('aria-expanded', String(!isOpen));
+      trashGroup.querySelector('[data-trash-content]').hidden = isOpen;
       return;
     }
     if (event.target.closest('[data-empty-trash]')) confirmEmptyTrash(app);
@@ -40,17 +61,25 @@ function renderArchives(container, state) {
   for (const [label, type, items] of groups) {
     const section = document.createElement('div');
     section.className = 'settings-group';
+    section.dataset.archiveGroup = type;
+    section.setAttribute('aria-expanded', 'false');
     const heading = document.createElement('div');
     heading.className = 'settings-group-title';
+    heading.dataset.toggleArchiveGroup = '';
     heading.innerHTML = `<strong>${label}</strong><span>${items.length}</span>`;
-    section.append(heading);
+    heading.setAttribute('role', 'button');
+    heading.setAttribute('tabindex', '0');
+    const itemsContainer = document.createElement('div');
+    itemsContainer.dataset.groupItems = '';
+    itemsContainer.hidden = true;
+    section.append(heading, itemsContainer);
     if (!items.length) {
       const empty = document.createElement('p');
       empty.className = 'settings-empty';
       empty.textContent = `No archived ${label.toLowerCase()}.`;
-      section.append(empty);
+      itemsContainer.append(empty);
     } else {
-      for (const item of items) section.append(settingsRow(type, item, displayName(type, item), true));
+      for (const item of items) itemsContainer.append(settingsRow(type, item, displayName(type, item), true));
     }
     container.append(section);
   }
@@ -72,6 +101,11 @@ function renderTrash(container, state) {
 function settingsRow(type, item, name, archived) {
   const row = document.createElement('article');
   row.className = 'settings-row';
+  if (archived) {
+    row.dataset.archiveItem = '';
+    row.dataset.type = type;
+    row.dataset.id = item.id;
+  }
   const copy = document.createElement('div');
   const title = document.createElement('strong');
   title.textContent = name;
@@ -100,6 +134,30 @@ function settingsRow(type, item, name, archived) {
   }
   row.append(copy, actions);
   return row;
+}
+
+function showArchivedItem(app, type, id) {
+  const collections = { client: 'clients', project: 'projects', task: 'tasks', payment: 'payments', delivery: 'deliveries', expense: 'expenses' };
+  const item = app.state.get()[collections[type]]?.find(entry => entry.id === id);
+  if (!item) return;
+  const content = document.createElement('div');
+  const details = [
+    ['Name', displayName(type, item)],
+    ['Status', 'Archived'],
+    ['Archived', formatDate(item.archivedAt)]
+  ];
+  content.innerHTML = `<div class="modal-heading"><span class="eyebrow">${type}</span><h2 data-title></h2></div><div class="archive-details" data-details></div><div class="modal-actions"><button class="primary-action" type="button" data-close>Close</button></div>`;
+  content.querySelector('[data-title]').textContent = displayName(type, item);
+  const list = content.querySelector('[data-details]');
+  for (const [label, value] of details) {
+    const row = document.createElement('p');
+    row.innerHTML = `<span></span><strong></strong>`;
+    row.querySelector('span').textContent = label;
+    row.querySelector('strong').textContent = value;
+    list.append(row);
+  }
+  content.querySelector('[data-close]').addEventListener('click', () => app.modal.close());
+  app.modal.open(content);
 }
 
 function applyAction(app, action, type, id) {

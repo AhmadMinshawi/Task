@@ -3,7 +3,7 @@ export function renderTasksView(root, app) {
   root.innerHTML = `
     <div class="page-heading">
       <div><span class="eyebrow">Execution</span><h1>Tasks</h1></div>
-      <div class="page-actions"><button class="secondary-action is-active" type="button" data-task-mode="active">Active</button><button class="secondary-action" type="button" data-task-mode="archive">Archive</button><button class="primary-action" type="button" data-add-task>Add task</button></div>
+      <button class="primary-action" type="button" data-add-task>Add task</button>
     </div>
     <div class="tasks-list" data-tasks></div>
   `;
@@ -28,7 +28,7 @@ export function renderTasksView(root, app) {
         <span class="task-status"></span>
       `;
       row.querySelector('strong').textContent = task.title;
-      row.querySelector('small').textContent = project?.name || 'Unknown project';
+      row.querySelector('small').textContent = project?.name || `Quick task${Number(task.amount) ? ` · ${Number(task.amount).toLocaleString()}` : ''}`;
       row.querySelector('.task-status').textContent = task.status;
       container.append(row);
     }
@@ -45,7 +45,6 @@ export function renderTasksView(root, app) {
     }
     if (event.target.closest('[data-add-task]')) {
       const projects = app.state.get().projects.filter(project => !project.deletedAt && !project.archivedAt);
-      if (!projects.length) return openNoProjectsMessage(app);
       openTaskForm(app, projects);
       return;
     }
@@ -81,11 +80,16 @@ function openTaskForm(app, projects, task = null) {
     </div>
     <form class="modal-form" data-task-form novalidate>
       <label>Task title<input name="title" type="text" maxlength="160" autocomplete="off" required></label>
-      <label>Project<select name="projectId" required></select></label>
+      <label>Project<select name="projectId"><option value="">Quick task / no project</option></select></label>
       <div class="form-columns">
         <label>Due date <span class="optional">(optional)</span><input name="dueDate" type="date"></label>
         <label>Status<select name="status"><option value="todo">To do</option><option value="in_progress">In progress</option><option value="done">Done</option></select></label>
       </div>
+      <div class="form-columns">
+        <label>Quick-task income<input name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="0"></label>
+        <label>Income date <span class="optional">(optional)</span><input name="incomeDate" type="date"></label>
+      </div>
+      <p class="field-hint">Quick-task income is added to the monthly total when the task is marked Done.</p>
       <p class="form-error" aria-live="polite"></p>
       <div class="modal-actions">
         <button class="secondary-action" type="button" data-cancel>Cancel</button>
@@ -106,6 +110,8 @@ function openTaskForm(app, projects, task = null) {
     form.elements.projectId.value = task.projectId || '';
     form.elements.dueDate.value = task.dueDate ? String(task.dueDate).slice(0, 10) : '';
     form.elements.status.value = task.status || 'todo';
+    form.elements.amount.value = Number(task.amount) || 0;
+    form.elements.incomeDate.value = task.incomeDate ? String(task.incomeDate).slice(0, 10) : '';
   }
   form.addEventListener('submit', event => {
     event.preventDefault();

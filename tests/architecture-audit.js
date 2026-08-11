@@ -25,6 +25,8 @@ const bootstrap = read('core/bootstrap.js');
 assert.equal(bootstrap.includes("register('FinanceEngine'"), true);
 assert.equal(bootstrap.includes("register('FinanceManager'"), true);
 assert.equal(bootstrap.includes("register('DeadlineManager'"), true);
+assert.equal(read('ui/AppShell.js').includes('mountNotificationCenter'), true, 'AppShell must delegate notifications');
+assert.equal(read('ui/components/NotificationCenter.js').includes('app.state.subscribe(render)'), true, 'notification center must react to state changes');
 assert.equal(bootstrap.indexOf("register('FinanceEngine'") < bootstrap.indexOf("register('FinanceManager'"), true);
 assert.equal(bootstrap.includes('MemoryAdapter'), false, 'production bootstrap must not use memory fallback');
 

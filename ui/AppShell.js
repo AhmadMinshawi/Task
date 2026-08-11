@@ -9,6 +9,7 @@ import { createModalController } from './components/Modal.js';
 import { renderFinanceView } from './components/FinanceView.js';
 import { renderCalendarView } from './components/CalendarView.js';
 import { renderSettingsView } from './components/SettingsView.js';
+import { mountNotificationCenter } from './components/NotificationCenter.js';
 
 export function renderAppShell(root, app, config) {
   app.shellCleanup?.();
@@ -19,10 +20,11 @@ export function renderAppShell(root, app, config) {
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-mark">${config.logo.mark}</div>
-        <div><strong>${config.name}</strong><small>${config.version}</small></div>
+        <div class="brand-copy"><strong>${config.name}</strong><small>${config.version}</small></div>
+        <div class="notification-center" data-notification-center></div>
       </div>
       <nav>
-        <button data-view="home"><span class="nav-icon">⌂</span><span class="nav-label">Home</span><span class="nav-badge" data-alert-count hidden></span></button>
+        <button data-view="home"><span class="nav-icon">⌂</span><span class="nav-label">Home</span></button>
         <button data-view="projects"><span class="nav-icon">▣</span><span class="nav-label">Projects</span></button>
         <button data-view="clients"><span class="nav-icon">♙</span><span class="nav-label">Clients</span></button>
         <button data-view="tasks"><span class="nav-icon">✓</span><span class="nav-label">Tasks</span></button>
@@ -126,15 +128,9 @@ export function renderAppShell(root, app, config) {
   });
 
   mount('HomeView', renderHomeDashboard);
-
-  const renderAlertCount = () => {
-    const count = app.managers.get('DeadlineManager').count();
-    const badge = root.querySelector('[data-alert-count]');
-    if (!badge) return;
-    badge.textContent = count > 99 ? '99+' : String(count);
-    badge.hidden = count === 0;
-  };
-  renderAlertCount();
-  const unsubscribeAlertCount = app.state.subscribe(renderAlertCount);
-  app.shellCleanup = () => unsubscribeAlertCount();
+  const unmountNotifications = mountNotificationCenter(root.querySelector('[data-notification-center]'), app, {
+    openProject,
+    openTasks: routes.tasks
+  });
+  app.shellCleanup = unmountNotifications;
 }

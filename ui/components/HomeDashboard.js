@@ -50,7 +50,7 @@ export function renderHomeDashboard(root, app) {
     const container = root.querySelector('[data-active-projects]');
     const projects = state.projects
       .filter(project => !project.deletedAt)
-      .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || String(b.updatedAt).localeCompare(String(a.updatedAt)))
+      .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)))
       .slice(0, 4);
     root.querySelector('[data-project-count]').textContent = `${state.projects.filter(x => !x.deletedAt).length} total`;
     container.replaceChildren();

@@ -58,5 +58,15 @@ export function createProjectService(app) {
     return result;
   }
 
-  return Object.freeze({ create, update, remove });
+  function archive(id) {
+    guard.assertManager('ProjectService');
+    return app.repositories.projects.update(id, { archivedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  }
+
+  function restore(id) {
+    guard.assertManager('ProjectService');
+    return app.repositories.projects.update(id, { archivedAt: null, updatedAt: new Date().toISOString() });
+  }
+
+  return Object.freeze({ create, update, archive, restore, remove });
 }

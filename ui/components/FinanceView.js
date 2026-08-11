@@ -7,7 +7,7 @@ export function renderFinanceView(root, app) {
   root.innerHTML = `
     <div class="page-heading">
       <div><span class="eyebrow">Money</span><h1>Finance</h1></div>
-      <div class="page-actions"><button class="secondary-action is-active" type="button" data-finance-mode="active">Active</button><button class="secondary-action" type="button" data-finance-mode="archive">Archive</button></div>
+      <span class="dashboard-period" data-period></span>
     </div>
     <div data-finance-summary></div>
     <div class="finance-layout">

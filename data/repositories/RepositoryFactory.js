@@ -24,7 +24,9 @@ export function createRepositories(app) {
         return repo().insert(record);
       },
       update(id, patch) { return repo().update(id, patch); },
-      softDelete(id) { return repo().softDelete(id); }
+      softDelete(id) { return repo().softDelete(id); },
+      restoreDeleted(id) { return repo().restoreDeleted(id); },
+      hardDelete(id) { return repo().hardDelete(id); }
     });
   }
 

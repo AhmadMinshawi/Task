@@ -39,6 +39,7 @@ export function importLegacyJobs(userId, jobs = []) {
         email: '',
         phone: '',
         industry: '',
+        archivedAt: null,
         createdAt: iso(job.createdAt),
         updatedAt: iso(job.updatedAt),
         deletedAt: null
@@ -55,6 +56,7 @@ export function importLegacyJobs(userId, jobs = []) {
       pricePerVideo: money(job.pricePerVideo),
       totalVideos: qty(job.totalVideos),
       pinned: Boolean(job.pinned),
+      archivedAt: null,
       status: job.projectStatus ?? 'progress',
       notes: job.notes ?? '',
       deadline: job.deadline ?? '',
@@ -72,6 +74,7 @@ export function importLegacyJobs(userId, jobs = []) {
         title: String(task.text ?? '').trim(),
         status: task.done ? 'done' : 'todo',
         dueDate: task.due || null,
+        archivedAt: null,
         createdAt: iso(task.createdAt ?? job.createdAt),
         updatedAt: iso(task.updatedAt ?? job.updatedAt),
         deletedAt: null
@@ -86,6 +89,7 @@ export function importLegacyJobs(userId, jobs = []) {
         amount: money(payment.amount),
         title: payment.title ?? 'Payment',
         date: payment.date || iso(payment.createdAt),
+        archivedAt: null,
         createdAt: iso(payment.createdAt ?? job.createdAt),
         updatedAt: iso(payment.updatedAt ?? job.updatedAt),
         deletedAt: null
@@ -100,6 +104,7 @@ export function importLegacyJobs(userId, jobs = []) {
         quantity: qty(delivery.count),
         title: delivery.title ?? 'Delivery',
         date: delivery.date || iso(delivery.createdAt),
+        archivedAt: null,
         createdAt: iso(delivery.createdAt ?? job.createdAt),
         updatedAt: iso(delivery.updatedAt ?? job.updatedAt),
         deletedAt: null
@@ -114,6 +119,7 @@ export function importLegacyJobs(userId, jobs = []) {
         amount: money(expense.amount),
         title: expense.title ?? expense.name ?? 'Expense',
         date: expense.date || iso(expense.createdAt),
+        archivedAt: null,
         createdAt: iso(expense.createdAt ?? job.createdAt),
         updatedAt: iso(expense.updatedAt ?? job.updatedAt),
         deletedAt: null

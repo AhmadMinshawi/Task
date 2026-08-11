@@ -53,6 +53,7 @@ export function importLegacyJobs(userId, jobs = []) {
       name: clientName,
       pricePerVideo: money(job.pricePerVideo),
       totalVideos: qty(job.totalVideos),
+      pinned: Boolean(job.pinned),
       status: job.projectStatus ?? 'progress',
       notes: job.notes ?? '',
       deadline: job.deadline ?? '',

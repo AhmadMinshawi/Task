@@ -17,9 +17,10 @@ export function createProjectCard(project, finance) {
   const pin = document.createElement('button');
   pin.className = 'pin-button';
   pin.type = 'button';
-  pin.setAttribute('aria-label', 'Pin project');
-  pin.setAttribute('aria-pressed', 'false');
-  pin.textContent = '☆';
+  pin.dataset.pinProject = project.id;
+  pin.setAttribute('aria-label', project.pinned ? 'Unpin project' : 'Pin project');
+  pin.setAttribute('aria-pressed', String(Boolean(project.pinned)));
+  pin.textContent = project.pinned ? '★' : '☆';
   head.append(info, pin);
 
   const metrics = document.createElement('div');

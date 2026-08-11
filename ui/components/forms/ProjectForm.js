@@ -15,6 +15,7 @@ export function openProjectForm(app, project = null) {
         <label>Total videos<input name="totalVideos" type="number" inputmode="numeric" min="0" step="1" value="0" required></label>
       </div>
       <label>Deadline <span class="optional">(optional)</span><input name="deadline" type="date"></label>
+      ${project ? '<label>Project link <span class="optional">(optional)</span><input name="projectLink" type="url" inputmode="url" autocomplete="url" placeholder="https://…"></label>' : ''}
       <p class="form-error" aria-live="polite"></p>
       <div class="modal-actions"><button class="secondary-action" type="button" data-cancel>Cancel</button><button class="primary-action" type="submit">${project ? 'Save changes' : 'Create project'}</button></div>
     </form>`;
@@ -30,6 +31,7 @@ export function openProjectForm(app, project = null) {
     form.elements.pricePerVideo.value = Number(project.pricePerVideo) || 0;
     form.elements.totalVideos.value = Number(project.totalVideos) || 0;
     form.elements.deadline.value = project.deadline ? String(project.deadline).slice(0, 10) : '';
+    form.elements.projectLink.value = project.projectLink || '';
     form.elements.status.value = project.status || 'new';
   }
   form.addEventListener('submit', event => {

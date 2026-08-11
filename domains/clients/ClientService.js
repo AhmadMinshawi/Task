@@ -1,8 +1,9 @@
 import { recordMeta } from '../../core/record.js';
+import { normalizeOptionalUrl } from '../../core/url.js';
 
 export function createClientService(app) {
   const guard = app.managers.get('MutationGuard');
-  function create({ name, email = '', phone = '', industry = '' }) {
+  function create({ name, email = '', phone = '', industry = '', profileLink = '' }) {
     guard.assertManager('ClientService');
     if (!String(name ?? '').trim()) throw new Error('Client name is required');
 
@@ -12,7 +13,8 @@ export function createClientService(app) {
       name: String(name).trim(),
       email: String(email).trim(),
       phone: String(phone).trim(),
-      industry: String(industry).trim()
+      industry: String(industry).trim(),
+      profileLink: normalizeOptionalUrl(profileLink, 'profile link')
     };
 
     app.repositories.clients.insert(record);
@@ -30,6 +32,7 @@ export function createClientService(app) {
     if (patch.email !== undefined) safe.email = String(patch.email).trim();
     if (patch.phone !== undefined) safe.phone = String(patch.phone).trim();
     if (patch.industry !== undefined) safe.industry = String(patch.industry).trim();
+    if (patch.profileLink !== undefined) safe.profileLink = normalizeOptionalUrl(patch.profileLink, 'profile link');
     safe.updatedAt = new Date().toISOString();
 
     const result = app.repositories.clients.update(id, safe);

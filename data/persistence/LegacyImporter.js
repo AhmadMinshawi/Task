@@ -39,6 +39,7 @@ export function importLegacyJobs(userId, jobs = []) {
         email: '',
         phone: '',
         industry: '',
+        profileLink: '',
         archivedAt: null,
         createdAt: iso(job.createdAt),
         updatedAt: iso(job.updatedAt),

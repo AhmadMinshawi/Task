@@ -1,11 +1,12 @@
 import { openClientForm } from './forms/ClientForm.js';
+import { sortRecords } from '../utils/sortRecords.js';
 
 export function renderClientsView(root, app) {
-  let mode = 'active';
+  let sortMode = 'newest';
   root.innerHTML = `
     <div class="page-heading">
       <div><span class="eyebrow">People</span><h1>Clients</h1></div>
-      <button class="primary-action" type="button" data-add-client>Add client</button>
+      <div class="page-actions"><label class="sort-control">Sort<select data-client-sort><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="name">Name</option></select></label><button class="primary-action" type="button" data-add-client>Add client</button></div>
     </div>
     <div class="clients-grid" data-clients></div>
   `;
@@ -15,7 +16,14 @@ export function renderClientsView(root, app) {
     if (!container) return;
     container.replaceChildren();
 
-    const clients = app.state.get().clients.filter(client => !client.deletedAt && (mode === 'archive' ? client.archivedAt : !client.archivedAt));
+    const clients = sortRecords(app.state.get().clients.filter(client => !client.deletedAt && !client.archivedAt), sortMode);
+    if (!clients.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = '<strong>No clients yet</strong><p>Add your first client to connect projects and contact details.</p>';
+      container.append(empty);
+      return;
+    }
     for (const client of clients) {
       const card = document.createElement('article');
       card.className = 'client-card';
@@ -24,7 +32,7 @@ export function renderClientsView(root, app) {
         <div class="client-card-head">
           <span class="eyebrow">Client</span>
           <div class="card-actions">
-            ${mode === 'active' ? '<button class="client-edit" type="button" data-edit-client>Edit</button><button class="client-edit" type="button" data-archive-client>Archive</button>' : '<button class="client-edit" type="button" data-restore-client>Restore</button>'}
+            <button class="client-edit" type="button" data-edit-client>Edit</button><button class="client-edit" type="button" data-archive-client>Archive</button>
             <button class="client-edit danger-action" type="button" data-delete-client>Delete</button>
           </div>
         </div>
@@ -34,24 +42,21 @@ export function renderClientsView(root, app) {
           <p data-client-email></p>
           <small data-client-phone></small>
         </div>
+        <a class="secondary-action detail-link" data-client-profile target="_blank" rel="noopener noreferrer" hidden>Open profile</a>
       `;
       card.querySelector('[data-client-name]').textContent = client.name;
       card.querySelector('[data-client-industry]').textContent = client.industry || 'No industry added';
       card.querySelector('[data-client-email]').textContent = client.email || 'No email';
       card.querySelector('[data-client-phone]').textContent = client.phone || 'No phone';
+      const profileLink = card.querySelector('[data-client-profile]');
+      profileLink.hidden = !client.profileLink;
+      if (client.profileLink) profileLink.href = client.profileLink;
       container.append(card);
     }
   };
 
   const handleClick = event => {
-    const modeButton = event.target.closest('[data-client-mode]');
-    if (modeButton) {
-      mode = modeButton.dataset.clientMode;
-      root.querySelectorAll('[data-client-mode]').forEach(button => button.classList.toggle('is-active', button === modeButton));
-      root.querySelector('[data-add-client]').hidden = mode === 'archive';
-      render();
-      return;
-    }
+    if (event.target.closest('a')) return;
     if (event.target.closest('[data-add-client]')) {
       openClientForm(app);
       return;
@@ -66,13 +71,19 @@ export function renderClientsView(root, app) {
     else if (action.matches('[data-restore-client]')) service.restore(client.id);
     else confirmDelete(app, client.name, () => service.remove(client.id));
   };
+  const handleSort = event => {
+    sortMode = event.target.value;
+    render();
+  };
   root.addEventListener('click', handleClick);
+  root.querySelector('[data-client-sort]').addEventListener('change', handleSort);
 
   render();
   const unsubscribe = app.state.subscribe(render);
   return () => {
     unsubscribe();
     root.removeEventListener('click', handleClick);
+    root.querySelector('[data-client-sort]')?.removeEventListener('change', handleSort);
   };
 }
 

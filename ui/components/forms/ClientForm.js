@@ -7,11 +7,12 @@ export function openClientForm(app, client = null) {
       <label>Email <span class="optional">(optional)</span><input name="email" type="email" maxlength="160" autocomplete="off"></label>
       <label>Phone <span class="optional">(optional)</span><input name="phone" type="tel" maxlength="40" autocomplete="off"></label>
       <label>Industry / field <span class="optional">(optional)</span><input name="industry" type="text" maxlength="100" autocomplete="off" placeholder="Real estate, media, education…"></label>
+      ${client ? '<label>Profile link <span class="optional">(optional)</span><input name="profileLink" type="url" inputmode="url" autocomplete="url" placeholder="https://…"></label>' : ''}
       <p class="form-error" aria-live="polite"></p>
       <div class="modal-actions"><button class="secondary-action" type="button" data-cancel>Cancel</button><button class="primary-action" type="submit">${client ? 'Save changes' : 'Create client'}</button></div>
     </form>`;
   const form = content.querySelector('[data-client-form]');
-  if (client) for (const field of ['name', 'email', 'phone', 'industry']) form.elements[field].value = client[field] || '';
+  if (client) for (const field of ['name', 'email', 'phone', 'industry', 'profileLink']) form.elements[field].value = client[field] || '';
   form.addEventListener('submit', event => {
     event.preventDefault();
     const error = form.querySelector('.form-error');

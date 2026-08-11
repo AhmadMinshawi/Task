@@ -12,7 +12,7 @@ export function renderProjectWorkspace(root, app, projectId) {
   root.innerHTML = `
     <div class="page-heading">
       <div><span class="eyebrow">Project workspace</span><h1 data-name></h1></div>
-      <div class="page-actions"><label class="status-control">Status<select data-project-status><option value="new">New</option><option value="in_progress">In progress</option><option value="ready">Ready to deliver</option><option value="completed">Completed</option></select></label><button type="button" class="secondary-action" data-back>Back</button></div>
+      <div class="page-actions"><a class="secondary-action detail-link" data-project-link target="_blank" rel="noopener noreferrer" hidden>Open project link</a><label class="status-control">Status<select data-project-status><option value="new">New</option><option value="in_progress">In progress</option><option value="ready">Ready to deliver</option><option value="completed">Completed</option></select></label><button type="button" class="secondary-action" data-back>Back</button></div>
     </div>
 
     <section class="project-summary" data-summary></section>
@@ -48,8 +48,12 @@ export function renderProjectWorkspace(root, app, projectId) {
     const f = app.managers.get('FinanceEngine').project(p, payments, deliveries);
     const displayStatus = displayProjectStatus(p);
     const statusSelect = root.querySelector('[data-project-status]');
+    const projectLink = root.querySelector('[data-project-link]');
     statusSelect.value = p.status || 'new';
     statusSelect.className = `status-${displayStatus}`;
+    projectLink.hidden = !p.projectLink;
+    if (p.projectLink) projectLink.href = p.projectLink;
+    else projectLink.removeAttribute('href');
 
     root.querySelector('[data-summary]').innerHTML = `
       <div><span>Status</span><strong class="status-text status-${displayStatus}">${projectStatusLabel(displayStatus)}</strong></div>

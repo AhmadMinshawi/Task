@@ -10,6 +10,7 @@ import { renderFinanceView } from './components/FinanceView.js';
 import { renderCalendarView } from './components/CalendarView.js';
 import { renderSettingsView } from './components/SettingsView.js';
 import { mountNotificationCenter } from './components/NotificationCenter.js';
+import { renderProfileView } from './components/ProfileView.js';
 
 export function renderAppShell(root, app, config) {
   app.shellCleanup?.();
@@ -24,13 +25,13 @@ export function renderAppShell(root, app, config) {
         <div class="notification-center" data-notification-center></div>
       </div>
       <nav>
-        <button data-view="home"><span class="nav-icon">⌂</span><span class="nav-label">Home</span></button>
-        <button data-view="projects"><span class="nav-icon">▣</span><span class="nav-label">Projects</span></button>
-        <button data-view="clients"><span class="nav-icon">♙</span><span class="nav-label">Clients</span></button>
-        <button data-view="tasks"><span class="nav-icon">✓</span><span class="nav-label">Tasks</span></button>
-        <button data-view="finance"><span class="nav-icon">$</span><span class="nav-label">Finance</span></button>
-        <button data-view="calendar"><span class="nav-icon">□</span><span class="nav-label">Calendar</span></button>
-        <button data-view="settings"><span class="nav-icon">⚙</span><span class="nav-label">Settings</span></button>
+        <button data-view="home" aria-label="Home" title="Home"><span class="nav-icon">⌂</span><span class="nav-label">Home</span></button>
+        <button data-view="projects" aria-label="Projects" title="Projects"><span class="nav-icon">▣</span><span class="nav-label">Projects</span></button>
+        <button data-view="clients" aria-label="Clients" title="Clients"><span class="nav-icon">♙</span><span class="nav-label">Clients</span></button>
+        <button data-view="tasks" aria-label="Tasks" title="Tasks"><span class="nav-icon">✓</span><span class="nav-label">Tasks</span></button>
+        <button data-view="finance" aria-label="Finance" title="Finance"><span class="nav-icon">$</span><span class="nav-label">Finance</span></button>
+        <button data-view="calendar" aria-label="Calendar" title="Calendar"><span class="nav-icon">□</span><span class="nav-label">Calendar</span></button>
+        <button data-view="settings" aria-label="Settings" title="Settings"><span class="nav-icon">⚙</span><span class="nav-label">Settings</span></button>
       </nav>
     </aside>
     <main class="main">
@@ -41,6 +42,7 @@ export function renderAppShell(root, app, config) {
             <input id="global-search" autocomplete="off" placeholder="Search by first letter…">
             <div class="search-results" id="search-results" hidden></div>
           </div>
+          <button class="profile-button" type="button" data-view="profile" aria-label="Open profile"><span class="profile-avatar" data-profile-avatar></span><span>Profile</span></button>
           <button class="signout-button" type="button" data-signout>Sign out</button>
         </div>
       </header>
@@ -50,6 +52,8 @@ export function renderAppShell(root, app, config) {
   `;
 
   const view = root.querySelector('#view');
+  const authUser = app.managers.get('AuthManager').user();
+  root.querySelector('[data-profile-avatar]').textContent = (authUser?.name || authUser?.email || 'U').slice(0, 1).toUpperCase();
   app.modal = createModalController(root.querySelector('#modal-root'));
 
   function mount(name, render) {
@@ -68,17 +72,30 @@ export function renderAppShell(root, app, config) {
     tasks: () => navigateTo('tasks', 'TasksView', renderTasksView),
     finance: () => navigateTo('finance', 'FinanceView', renderFinanceView),
     calendar: () => navigateTo('calendar', 'CalendarView', renderCalendarView),
-    settings: () => navigateTo('settings', 'SettingsView', renderSettingsView)
+    settings: () => navigateTo('settings', 'SettingsView', renderSettingsView),
+    profile: () => navigateTo('profile', 'ProfileView', renderProfileView)
   };
 
   function navigateTo(route, name, render) {
     activeRoute = route;
+    setActiveNavigation(route);
     mount(name, render);
+  }
+
+  function setActiveNavigation(route) {
+    const selected = route === 'project' ? 'projects' : route;
+    root.querySelectorAll('[data-view]').forEach(button => {
+      const active = button.dataset.view === selected;
+      button.classList.toggle('is-active', active);
+      if (active) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    });
   }
 
   function openProject(projectId) {
     workspaceReturnRoute = activeRoute === 'project' ? workspaceReturnRoute : activeRoute;
     activeRoute = 'project';
+    setActiveNavigation('project');
     mount('ProjectWorkspace', (r, a) => renderProjectWorkspace(r, a, projectId));
   }
 
@@ -132,7 +149,7 @@ export function renderAppShell(root, app, config) {
     searchResults.hidden = !event.target.value.trim();
   });
 
-  mount('HomeView', renderHomeDashboard);
+  navigateTo('home', 'HomeView', renderHomeDashboard);
   const unmountNotifications = mountNotificationCenter(root.querySelector('[data-notification-center]'), app, {
     openProject,
     openTasks: routes.tasks

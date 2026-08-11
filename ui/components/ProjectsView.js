@@ -1,12 +1,13 @@
 import { createProjectCard } from './ProjectCard.js';
 import { openProjectForm } from './forms/ProjectForm.js';
+import { sortRecords } from '../utils/sortRecords.js';
 
 export function renderProjectsView(root, app) {
-  let mode = 'active';
+  let sortMode = 'newest';
   root.innerHTML = `
     <div class="page-heading">
       <div><span class="eyebrow">Workspace</span><h1>Projects</h1></div>
-      <button class="primary-action" type="button" data-add-project>Add project</button>
+      <div class="page-actions"><label class="sort-control">Sort<select data-project-sort><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="name">Name</option></select></label><button class="primary-action" type="button" data-add-project>Add project</button></div>
     </div>
     <div class="projects-grid" data-projects></div>
   `;
@@ -18,9 +19,11 @@ export function renderProjectsView(root, app) {
     if (!container) return;
     container.replaceChildren();
 
-    const projects = state.projects
-      .filter(project => !project.deletedAt && (mode === 'archive' ? project.archivedAt : !project.archivedAt))
-      .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)));
+    const projects = sortRecords(
+      state.projects.filter(project => !project.deletedAt && !project.archivedAt),
+      sortMode,
+      { pinned: true }
+    );
 
     if (!projects.length) {
       const empty = document.createElement('div');
@@ -41,14 +44,6 @@ export function renderProjectsView(root, app) {
   const unsubscribe = app.state.subscribe(render);
 
   const handleClick = event => {
-    const modeButton = event.target.closest('[data-project-mode]');
-    if (modeButton) {
-      mode = modeButton.dataset.projectMode;
-      root.querySelectorAll('[data-project-mode]').forEach(button => button.classList.toggle('is-active', button === modeButton));
-      root.querySelector('[data-add-project]').hidden = mode === 'archive';
-      render();
-      return;
-    }
     const pin = event.target.closest('[data-pin-project]');
     if (pin) {
       const project = app.state.get().projects.find(x => x.id === pin.dataset.pinProject && !x.deletedAt);
@@ -71,11 +66,17 @@ export function renderProjectsView(root, app) {
     else if (action.matches('[data-restore-project]')) service.restore(project.id);
     else confirmProjectDelete(app, project, () => service.remove(project.id));
   };
+  const handleSort = event => {
+    sortMode = event.target.value;
+    render();
+  };
   root.addEventListener('click', handleClick);
+  root.querySelector('[data-project-sort]').addEventListener('change', handleSort);
 
   return () => {
     unsubscribe();
     root.removeEventListener('click', handleClick);
+    root.querySelector('[data-project-sort]')?.removeEventListener('change', handleSort);
   };
 }
 

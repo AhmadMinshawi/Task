@@ -18,7 +18,7 @@ export function renderProjectsView(root, app) {
 
     const projects = state.projects
       .filter(project => !project.deletedAt)
-      .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || String(b.updatedAt).localeCompare(String(a.updatedAt)));
+      .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)));
 
     if (!projects.length) {
       const empty = document.createElement('div');

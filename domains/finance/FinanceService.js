@@ -42,5 +42,22 @@ export function createFinanceService(app) {
     return record;
   }
 
-  return Object.freeze({ addPayment, addDelivery });
+  function mutate(kind, id, action) {
+    guard.assertManager('FinanceService');
+    const repository = kind === 'payment' ? app.repositories.payments : app.repositories.deliveries;
+    if (!repository) throw new Error('Invalid finance record type');
+    if (action === 'delete') return repository.softDelete(id);
+    return repository.update(id, {
+      archivedAt: action === 'archive' ? new Date().toISOString() : null,
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  return Object.freeze({
+    addPayment,
+    addDelivery,
+    archive: (kind, id) => mutate(kind, id, 'archive'),
+    restore: (kind, id) => mutate(kind, id, 'restore'),
+    remove: (kind, id) => mutate(kind, id, 'delete')
+  });
 }

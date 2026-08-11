@@ -88,9 +88,10 @@ export function renderAppShell(root, app, config) {
       (routes[workspaceReturnRoute] || routes.projects)();
       return;
     }
-    const button = event.target.closest('.open-project');
+    if (event.target.closest('button, input, select, textarea, a')) return;
+    const button = event.target.closest('.open-project, .project-card, [data-open-project]');
     if (!button) return;
-    const id = button.dataset.projectId || button.closest('.project-card')?.dataset.projectId;
+    const id = button.dataset.projectId || button.closest('[data-project-id]')?.dataset.projectId;
     if (id) openProject(id);
   });
 

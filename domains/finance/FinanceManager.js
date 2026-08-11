@@ -26,5 +26,31 @@ export function createFinanceManager(app) {
     );
   }
 
-  return Object.freeze({ projectSummary, monthlySummary });
+  function portfolioSummary(month = new Date().toISOString().slice(0, 7)) {
+    const state = app.state.get();
+    const projects = state.projects.filter(x => !x.deletedAt);
+    const payments = state.payments.filter(x => !x.deletedAt);
+    const deliveries = state.deliveries.filter(x => !x.deletedAt);
+    const monthly = engine.monthly(
+      payments,
+      state.expenses.filter(x => !x.deletedAt),
+      month
+    );
+
+    const totals = projects.reduce((summary, project) => {
+      const finance = engine.project(
+        project,
+        payments.filter(x => x.projectId === project.id),
+        deliveries.filter(x => x.projectId === project.id)
+      );
+      summary.projectValue += finance.grossProjectValue;
+      summary.allTimeCollected += finance.paid;
+      summary.outstanding += Math.max(finance.grossProjectValue - finance.paid, 0);
+      return summary;
+    }, { projectValue: 0, allTimeCollected: 0, outstanding: 0 });
+
+    return Object.freeze({ ...monthly, ...totals });
+  }
+
+  return Object.freeze({ projectSummary, monthlySummary, portfolioSummary });
 }

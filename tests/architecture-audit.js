@@ -37,6 +37,7 @@ for (const file of [
 
 assert.equal(exists('domains/projects/ProjectStatus.js'), true, 'project lifecycle rules must remain outside the UI');
 assert.equal(read('data/persistence/PersistenceManager.js').includes('app.state.subscribe'), true, 'persistence must observe all state mutations');
+assert.equal(read('data/persistence/StateRepository.js').includes('loadedState'), true, 'remote state must be normalized before use');
 
 for (const [view, form] of [
   ['ui/components/ProjectsView.js', './forms/ProjectForm.js'],

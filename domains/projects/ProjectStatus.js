@@ -9,7 +9,8 @@ export function normalizeProjectStatus(value = 'new') {
 }
 
 export function displayProjectStatus(project, today = new Date()) {
-  const status = normalizeProjectStatus(project.status || 'new');
+  let status = 'new';
+  try { status = normalizeProjectStatus(project.status || 'new'); } catch { /* tolerate unknown legacy values */ }
   if (status === 'completed' || !project.deadline) return status;
   const deadline = new Date(`${String(project.deadline).slice(0, 10)}T23:59:59`);
   return !Number.isNaN(deadline.getTime()) && deadline < today ? 'overdue' : status;

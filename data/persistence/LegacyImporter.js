@@ -57,7 +57,7 @@ export function importLegacyJobs(userId, jobs = []) {
       totalVideos: qty(job.totalVideos),
       pinned: Boolean(job.pinned),
       archivedAt: null,
-      status: ({ progress: 'in_progress', active: 'in_progress', done: 'completed' })[job.projectStatus] || job.projectStatus || 'new',
+      status: ({ progress: 'in_progress', active: 'in_progress', done: 'completed', completed: 'completed', ready: 'ready', in_progress: 'in_progress', new: 'new' })[job.projectStatus] || 'new',
       notes: job.notes ?? '',
       deadline: job.deadline ?? '',
       projectLink: job.projectLink ?? '',

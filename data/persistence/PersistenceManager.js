@@ -1,5 +1,6 @@
 export function createPersistenceManager(app, repository) {
   let loaded = false;
+  let loadedUserId = null;
   let saving = false;
   let pending = false;
   let lastError = null;
@@ -8,13 +9,14 @@ export function createPersistenceManager(app, repository) {
   async function load(userId) {
     const state = await repository.load(userId);
     app.state.replace(state);
+    loadedUserId = userId;
     loaded = true;
     app.events.emit('persistence.loaded', { revision: repository.currentRevision() });
     return state;
   }
 
   async function flush() {
-    if (!loaded) return false;
+    if (!loaded || app.state.get().session?.userId !== loadedUserId) return false;
     if (saving) { pending = true; return false; }
 
     saving = true;

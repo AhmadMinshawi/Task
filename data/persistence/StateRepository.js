@@ -1,6 +1,13 @@
 import { importLegacyJobs } from './LegacyImporter.js';
 
 const TABLE = 'taskv_state_v2';
+const COLLECTIONS = ['clients','projects','tasks','payments','deliveries','expenses','activities'];
+
+function loadedState(state, currentUserId) {
+  const safe = { ...structuredClone(state ?? {}), session: { userId: currentUserId } };
+  for (const collection of COLLECTIONS) if (!Array.isArray(safe[collection])) safe[collection] = [];
+  return safe;
+}
 
 function dataCounts(state) {
   return ['clients','projects','tasks','payments','deliveries','expenses','activities']
@@ -35,11 +42,11 @@ export function createStateRepository(supabase) {
     remotePayload = structuredClone(data.payload ?? {});
 
     if (remotePayload.state && typeof remotePayload.state === 'object') {
-      return { ...structuredClone(remotePayload.state), session: { userId: currentUserId } };
+      return loadedState(remotePayload.state, currentUserId);
     }
 
     if (Array.isArray(remotePayload.legacy_jobs)) {
-      return importLegacyJobs(currentUserId, remotePayload.legacy_jobs);
+      return loadedState(importLegacyJobs(currentUserId, remotePayload.legacy_jobs), currentUserId);
     }
 
     return {

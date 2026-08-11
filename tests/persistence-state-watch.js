@@ -23,6 +23,10 @@ await new Promise(resolve => setTimeout(resolve, 0));
 assert.equal(saves, 1, 'every state mutation after load must be persisted');
 assert.equal(saved.projects[0].deletedAt, null, 'restored deletion state must reach persistence');
 
+app.state.setSession(null);
+await new Promise(resolve => setTimeout(resolve, 0));
+assert.equal(saves, 1, 'sign out must not attempt to save with a missing owner');
+
 persistence.stop();
 app.state.update(state => { state.projects[0].name = 'No save after stop'; });
 await new Promise(resolve => setTimeout(resolve, 0));

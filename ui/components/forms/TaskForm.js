@@ -1,4 +1,4 @@
-export function openTaskForm(app, projects, task = null) {
+export function openTaskForm(app, projects, task = null, { defaultProjectId = null, lockProject = false } = {}) {
   const content = document.createElement('div');
   content.innerHTML = `
     <div class="modal-heading"><span class="eyebrow">Execution</span><h2>${task ? 'Edit task' : 'Add task'}</h2><p>${task ? 'Update the task, project, income or status.' : 'Create a project task or a paid quick task.'}</p></div>
@@ -19,6 +19,12 @@ export function openTaskForm(app, projects, task = null) {
     form.elements.status.value = task.status || 'todo';
     form.elements.amount.value = Number(task.amount) || 0;
     form.elements.incomeDate.value = task.incomeDate ? String(task.incomeDate).slice(0, 10) : '';
+  } else if (defaultProjectId) {
+    form.elements.projectId.value = defaultProjectId;
+  }
+  if (lockProject) {
+    form.elements.projectId.querySelector('option[value=""]')?.remove();
+    form.elements.projectId.value = task?.projectId || defaultProjectId || '';
   }
   form.addEventListener('submit', event => {
     event.preventDefault();

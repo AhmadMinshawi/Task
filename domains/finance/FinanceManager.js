@@ -12,8 +12,8 @@ export function createFinanceManager(app) {
     const state = app.state.get();
     return engine.project(
       project,
-      state.payments.filter(x => x.projectId === projectId && !x.deletedAt),
-      state.deliveries.filter(x => x.projectId === projectId && !x.deletedAt)
+      state.payments.filter(x => x.projectId === projectId && !x.deletedAt && !x.archivedAt),
+      state.deliveries.filter(x => x.projectId === projectId && !x.deletedAt && !x.archivedAt)
     );
   }
 

@@ -46,6 +46,14 @@ for (const file of [
 assert.equal(exists('ui/components/ProfileView.js'), true, 'profile must remain an extracted UI module');
 assert.equal(exists('ui/components/AccountMenu.js'), true, 'account controls must remain an extracted UI module');
 assert.equal(read('ui/AppShell.js').includes('mountAccountMenu'), true, 'AppShell must delegate the account menu');
+for (const file of [
+  'ui/components/project/ProjectOverview.js',
+  'ui/components/project/ProjectFinancePanel.js',
+  'ui/components/project/ProjectTasksPanel.js',
+  'ui/components/forms/FinanceRecordForm.js'
+]) assert.equal(exists(file), true, `${file} must remain an extracted project workspace module`);
+assert.equal(read('ui/components/ProjectWorkspace.js').includes('renderProjectFinancePanel'), true, 'project workspace must delegate finance rendering');
+assert.equal(read('ui/components/ProjectWorkspace.js').includes('renderProjectTasksPanel'), true, 'project workspace must delegate task rendering');
 assert.equal(exists('ui/utils/sortRecords.js'), true, 'shared collection sorting must not be duplicated in views');
 assert.equal(read('ui/components/ProjectsView.js').includes('data-project-mode'), false, 'projects must not keep the removed archive mode');
 assert.equal(read('ui/components/ClientsView.js').includes('data-client-mode'), false, 'clients must not keep the removed archive mode');

@@ -42,6 +42,32 @@ export function createFinanceService(app) {
     return record;
   }
 
+  function updatePayment(id, { amount, title = 'Payment', date = '' }) {
+    guard.assertManager('FinanceService');
+    const current = app.repositories.payments.findById(id);
+    if (!current) throw new Error('Payment not found');
+    return app.repositories.payments.update(id, {
+      amount: normalizeMoney(amount),
+      title: String(title).trim() || 'Payment',
+      date: normalizeOptionalDate(date) ?? current.date,
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  function updateDelivery(id, { quantity, title = 'Delivery', date = '' }) {
+    guard.assertManager('FinanceService');
+    const current = app.repositories.deliveries.findById(id);
+    if (!current) throw new Error('Delivery not found');
+    const nextQuantity = normalizeQuantity(quantity);
+    if (nextQuantity < 1) throw new Error('Delivery quantity must be at least 1');
+    return app.repositories.deliveries.update(id, {
+      quantity: nextQuantity,
+      title: String(title).trim() || 'Delivery',
+      date: normalizeOptionalDate(date) ?? current.date,
+      updatedAt: new Date().toISOString()
+    });
+  }
+
   function mutate(kind, id, action) {
     guard.assertManager('FinanceService');
     const repository = kind === 'payment' ? app.repositories.payments : app.repositories.deliveries;
@@ -56,6 +82,8 @@ export function createFinanceService(app) {
   return Object.freeze({
     addPayment,
     addDelivery,
+    updatePayment,
+    updateDelivery,
     archive: (kind, id) => mutate(kind, id, 'archive'),
     restore: (kind, id) => mutate(kind, id, 'restore'),
     remove: (kind, id) => mutate(kind, id, 'delete')

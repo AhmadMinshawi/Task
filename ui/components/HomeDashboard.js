@@ -49,10 +49,10 @@ export function renderHomeDashboard(root, app) {
   function renderProjects(state) {
     const container = root.querySelector('[data-active-projects]');
     const projects = state.projects
-      .filter(project => !project.deletedAt)
+      .filter(project => !project.deletedAt && !project.archivedAt)
       .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)))
       .slice(0, 4);
-    root.querySelector('[data-project-count]').textContent = `${state.projects.filter(x => !x.deletedAt).length} total`;
+    root.querySelector('[data-project-count]').textContent = `${state.projects.filter(x => !x.deletedAt && !x.archivedAt).length} total`;
     container.replaceChildren();
 
     if (!projects.length) {
@@ -86,7 +86,7 @@ export function renderHomeDashboard(root, app) {
 
   function renderTasks(state) {
     const container = root.querySelector('[data-next-tasks]');
-    const active = state.tasks.filter(task => !task.deletedAt && task.status !== 'done' && task.status !== 'cancelled');
+    const active = state.tasks.filter(task => !task.deletedAt && !task.archivedAt && task.status !== 'done' && task.status !== 'cancelled');
     root.querySelector('[data-task-count]').textContent = `${active.length} open`;
     const tasks = active.sort((a, b) => {
       if (!a.dueDate) return 1;
@@ -120,10 +120,10 @@ export function renderHomeDashboard(root, app) {
 
   function renderOverview(state, finance) {
     const stats = [
-      ['Clients', state.clients.filter(x => !x.deletedAt).length],
-      ['Projects', state.projects.filter(x => !x.deletedAt).length],
-      ['Open tasks', state.tasks.filter(x => !x.deletedAt && !['done', 'cancelled'].includes(x.status)).length],
-      ['Delivered videos', state.deliveries.filter(x => !x.deletedAt).reduce((sum, x) => sum + Number(x.quantity || 0), 0)]
+      ['Clients', state.clients.filter(x => !x.deletedAt && !x.archivedAt).length],
+      ['Projects', state.projects.filter(x => !x.deletedAt && !x.archivedAt).length],
+      ['Open tasks', state.tasks.filter(x => !x.deletedAt && !x.archivedAt && !['done', 'cancelled'].includes(x.status)).length],
+      ['Delivered videos', state.deliveries.filter(x => !x.deletedAt && !x.archivedAt).reduce((sum, x) => sum + Number(x.quantity || 0), 0)]
     ];
     const container = root.querySelector('[data-overview-stats]');
     container.replaceChildren(...stats.map(([label, value]) => {
@@ -137,8 +137,8 @@ export function renderHomeDashboard(root, app) {
     for (const [label, value] of [
       ['Portfolio value', money(finance.projectValue, financeHidden)],
       ['Collected all time', money(finance.allTimeCollected, financeHidden)],
-      ['Payments', state.payments.filter(x => !x.deletedAt).length],
-      ['Expenses', state.expenses.filter(x => !x.deletedAt).length]
+      ['Payments', state.payments.filter(x => !x.deletedAt && !x.archivedAt).length],
+      ['Expenses', state.expenses.filter(x => !x.deletedAt && !x.archivedAt).length]
     ]) {
       const item = document.createElement('div');
       item.append(textNode('span', '', label), textNode('strong', '', String(value)));

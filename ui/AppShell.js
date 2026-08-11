@@ -7,6 +7,8 @@ import { renderTasksView } from './components/TasksView.js';
 import { renderSearchResults } from './components/SearchResults.js';
 import { createModalController } from './components/Modal.js';
 import { renderFinanceView } from './components/FinanceView.js';
+import { renderCalendarView } from './components/CalendarView.js';
+import { renderSettingsView } from './components/SettingsView.js';
 
 export function renderAppShell(root, app, config) {
   const ui = createUIManager(app);
@@ -24,6 +26,8 @@ export function renderAppShell(root, app, config) {
         <button data-view="clients">Clients</button>
         <button data-view="tasks">Tasks</button>
         <button data-view="finance">Finance</button>
+        <button data-view="calendar">Calendar</button>
+        <button data-view="settings">Settings</button>
       </nav>
     </aside>
     <main class="main">
@@ -59,7 +63,9 @@ export function renderAppShell(root, app, config) {
     projects: () => navigateTo('projects', 'ProjectsView', renderProjectsView),
     clients: () => navigateTo('clients', 'ClientsView', renderClientsView),
     tasks: () => navigateTo('tasks', 'TasksView', renderTasksView),
-    finance: () => navigateTo('finance', 'FinanceView', renderFinanceView)
+    finance: () => navigateTo('finance', 'FinanceView', renderFinanceView),
+    calendar: () => navigateTo('calendar', 'CalendarView', renderCalendarView),
+    settings: () => navigateTo('settings', 'SettingsView', renderSettingsView)
   };
 
   function navigateTo(route, name, render) {

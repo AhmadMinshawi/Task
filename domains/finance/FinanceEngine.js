@@ -23,15 +23,21 @@ export function createFinanceEngine() {
     });
   }
 
-  function monthly(payments = [], expenses = [], month) {
+  function monthly(payments = [], expenses = [], month, quickTasks = []) {
     const inMonth = item => String(item.date ?? item.createdAt ?? '').slice(0, 7) === month;
-    const collected = payments.filter(inMonth).reduce((s, p) => s + Validators.money(p.amount), 0);
+    const paymentIncome = payments.filter(inMonth).reduce((s, p) => s + Validators.money(p.amount), 0);
+    const taskIncome = quickTasks
+      .filter(task => task.status === 'done' && inMonth({ ...task, date: task.incomeDate || task.dueDate || task.updatedAt }))
+      .reduce((sum, task) => sum + Validators.money(task.amount), 0);
+    const collected = paymentIncome + taskIncome;
     const spent = expenses.filter(inMonth).reduce((s, e) => s + Validators.money(e.amount), 0);
 
     return Object.freeze({
       month,
       collected,
       expenses: spent,
+      paymentIncome,
+      taskIncome,
       netCollected: collected - spent
     });
   }

@@ -114,7 +114,7 @@ export function renderHomeDashboard(root, app) {
     for (const project of projects) {
       const summary = app.managers.get('FinanceManager').projectSummary(project.id);
       const totalVideos = Number(project.totalVideos) || 0;
-      if (totalVideos > 0 && summary.deliveredVideos >= totalVideos) completedProjects += 1;
+      if (project.status === 'completed' || (totalVideos > 0 && summary.deliveredVideos >= totalVideos)) completedProjects += 1;
       videosLeft += summary.remainingProjectVideos;
     }
     const stats = [

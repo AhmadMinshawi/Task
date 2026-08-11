@@ -1,3 +1,5 @@
+import { displayProjectStatus, projectStatusLabel } from '../../domains/projects/ProjectStatus.js';
+
 export function createProjectCard(project, finance) {
   const el = document.createElement('article');
   el.className = 'project-card';
@@ -9,7 +11,9 @@ export function createProjectCard(project, finance) {
   const info = document.createElement('div');
   const eyebrow = document.createElement('span');
   eyebrow.className = 'eyebrow';
-  eyebrow.textContent = 'Project';
+  const status = displayProjectStatus(project);
+  eyebrow.classList.add('project-status', `status-${status}`);
+  eyebrow.textContent = projectStatusLabel(status);
   const title = document.createElement('h3');
   title.textContent = project.name;
   info.append(eyebrow, title);

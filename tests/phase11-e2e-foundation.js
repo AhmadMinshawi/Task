@@ -47,6 +47,12 @@ const project = app.managers.get('ProjectService').create({
 });
 assert.equal(String(project.deadline).slice(0, 10), '2026-08-20');
 assert.equal(project.pinned, false);
+assert.equal(project.status, 'new');
+assert.equal(app.managers.get('ProjectService').update(project.id, { status: 'in_progress' }).status, 'in_progress');
+assert.equal(app.managers.get('ProjectService').update(project.id, { status: 'ready' }).status, 'ready');
+assert.equal(app.managers.get('ProjectService').update(project.id, { status: 'completed' }).status, 'completed');
+assert.equal(app.managers.get('ProjectService').update(project.id, { status: 'in_progress' }).status, 'in_progress');
+assert.throws(() => app.managers.get('ProjectService').update(project.id, { status: 'unknown' }), /Invalid project status/);
 const pinnedProject = app.managers.get('ProjectService').update(project.id, { pinned: true });
 assert.equal(pinnedProject.pinned, true);
 const editedProject = app.managers.get('ProjectService').update(project.id, {

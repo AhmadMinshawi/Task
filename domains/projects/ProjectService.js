@@ -1,8 +1,9 @@
 import { recordMeta, normalizeMoney, normalizeQuantity, normalizeOptionalDate } from '../../core/record.js';
+import { normalizeProjectStatus } from './ProjectStatus.js';
 
 export function createProjectService(app) {
   const guard = app.managers.get('MutationGuard');
-  function create({ name, clientId = null, pricePerVideo = 0, totalVideos = 0, pinned = false, deadline = '' }) {
+  function create({ name, clientId = null, pricePerVideo = 0, totalVideos = 0, pinned = false, deadline = '', status = 'new' }) {
     guard.assertManager('ProjectService');
     if (!String(name ?? '').trim()) throw new Error('Project name is required');
     const meta = recordMeta(app);
@@ -20,7 +21,8 @@ export function createProjectService(app) {
       pricePerVideo: normalizeMoney(pricePerVideo, 'pricePerVideo'),
       totalVideos: normalizeQuantity(totalVideos, 'totalVideos'),
       pinned: Boolean(pinned),
-      deadline: normalizeOptionalDate(deadline)
+      deadline: normalizeOptionalDate(deadline),
+      status: normalizeProjectStatus(status)
     };
 
     app.repositories.projects.insert(record);
@@ -46,6 +48,7 @@ export function createProjectService(app) {
     if (patch.totalVideos !== undefined) safe.totalVideos = normalizeQuantity(patch.totalVideos, 'totalVideos');
     if (patch.pinned !== undefined) safe.pinned = Boolean(patch.pinned);
     if (patch.deadline !== undefined) safe.deadline = normalizeOptionalDate(patch.deadline);
+    if (patch.status !== undefined) safe.status = normalizeProjectStatus(patch.status);
     safe.updatedAt = new Date().toISOString();
 
     const result = app.repositories.projects.update(id, safe);

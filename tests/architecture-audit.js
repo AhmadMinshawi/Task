@@ -35,6 +35,8 @@ for (const file of [
   'ui/components/settings/TrashPanel.js'
 ]) assert.equal(exists(file), true, `${file} must remain an extracted UI module`);
 
+assert.equal(exists('domains/projects/ProjectStatus.js'), true, 'project lifecycle rules must remain outside the UI');
+
 for (const [view, form] of [
   ['ui/components/ProjectsView.js', './forms/ProjectForm.js'],
   ['ui/components/ClientsView.js', './forms/ClientForm.js'],

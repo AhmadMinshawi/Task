@@ -1,3 +1,5 @@
+import { displayProjectStatus, projectStatusLabel } from '../../domains/projects/ProjectStatus.js';
+
 export function renderProjectWorkspace(root, app, projectId) {
   if (!projectId) throw new Error('Project id is required');
   const state = app.state.get();
@@ -10,7 +12,7 @@ export function renderProjectWorkspace(root, app, projectId) {
   root.innerHTML = `
     <div class="page-heading">
       <div><span class="eyebrow">Project workspace</span><h1 data-name></h1></div>
-      <button type="button" class="secondary-action" data-back>Back</button>
+      <div class="page-actions"><label class="status-control">Status<select data-project-status><option value="new">New</option><option value="in_progress">In progress</option><option value="ready">Ready to deliver</option><option value="completed">Completed</option></select></label><button type="button" class="secondary-action" data-back>Back</button></div>
     </div>
 
     <section class="project-summary" data-summary></section>
@@ -44,8 +46,13 @@ export function renderProjectWorkspace(root, app, projectId) {
     const payments = s.payments.filter(x => x.projectId === projectId && !x.deletedAt);
     const deliveries = s.deliveries.filter(x => x.projectId === projectId && !x.deletedAt);
     const f = app.managers.get('FinanceEngine').project(p, payments, deliveries);
+    const displayStatus = displayProjectStatus(p);
+    const statusSelect = root.querySelector('[data-project-status]');
+    statusSelect.value = p.status || 'new';
+    statusSelect.className = `status-${displayStatus}`;
 
     root.querySelector('[data-summary]').innerHTML = `
+      <div><span>Status</span><strong class="status-text status-${displayStatus}">${projectStatusLabel(displayStatus)}</strong></div>
       <div><span>Project value</span><strong>${money(f.grossProjectValue)}</strong></div>
       <div><span>Paid</span><strong>${money(f.paid)}</strong></div>
       <div><span>Delivered</span><strong>${f.deliveredVideos}</strong></div>
@@ -56,6 +63,11 @@ export function renderProjectWorkspace(root, app, projectId) {
 
   const paymentForm = root.querySelector('[data-payment-form]');
   const deliveryForm = root.querySelector('[data-delivery-form]');
+  const statusSelect = root.querySelector('[data-project-status]');
+
+  statusSelect.addEventListener('change', () => {
+    app.managers.get('ProjectService').update(projectId, { status: statusSelect.value });
+  });
 
   paymentForm.addEventListener('submit', e => {
     e.preventDefault();

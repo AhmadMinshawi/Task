@@ -9,6 +9,7 @@ export function openProjectForm(app, project = null) {
     <form class="modal-form" data-project-form novalidate>
       <label>Project name<input name="name" type="text" maxlength="120" autocomplete="off" required></label>
       <label>Client<select name="clientId"><option value="">No client</option></select></label>
+      <label>Status<select name="status"><option value="new">New</option><option value="in_progress">In progress</option><option value="ready">Ready to deliver</option><option value="completed">Completed</option></select></label>
       <div class="form-columns">
         <label>Price per video<input name="pricePerVideo" type="number" inputmode="decimal" min="0" step="0.01" value="0" required></label>
         <label>Total videos<input name="totalVideos" type="number" inputmode="numeric" min="0" step="1" value="0" required></label>
@@ -29,6 +30,7 @@ export function openProjectForm(app, project = null) {
     form.elements.pricePerVideo.value = Number(project.pricePerVideo) || 0;
     form.elements.totalVideos.value = Number(project.totalVideos) || 0;
     form.elements.deadline.value = project.deadline ? String(project.deadline).slice(0, 10) : '';
+    form.elements.status.value = project.status || 'new';
   }
   form.addEventListener('submit', event => {
     event.preventDefault();

@@ -20,20 +20,20 @@ export function createFinanceManager(app) {
   function monthlySummary(month = new Date().toISOString().slice(0, 7)) {
     const state = app.state.get();
     return engine.monthly(
-      state.payments.filter(x => !x.deletedAt),
-      state.expenses.filter(x => !x.deletedAt),
+      state.payments.filter(x => !x.deletedAt && !x.archivedAt),
+      state.expenses.filter(x => !x.deletedAt && !x.archivedAt),
       month
     );
   }
 
   function portfolioSummary(month = new Date().toISOString().slice(0, 7)) {
     const state = app.state.get();
-    const projects = state.projects.filter(x => !x.deletedAt);
-    const payments = state.payments.filter(x => !x.deletedAt);
-    const deliveries = state.deliveries.filter(x => !x.deletedAt);
+    const projects = state.projects.filter(x => !x.deletedAt && !x.archivedAt);
+    const payments = state.payments.filter(x => !x.deletedAt && !x.archivedAt);
+    const deliveries = state.deliveries.filter(x => !x.deletedAt && !x.archivedAt);
     const monthly = engine.monthly(
       payments,
-      state.expenses.filter(x => !x.deletedAt),
+      state.expenses.filter(x => !x.deletedAt && !x.archivedAt),
       month
     );
 

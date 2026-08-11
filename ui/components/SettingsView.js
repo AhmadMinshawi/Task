@@ -88,11 +88,11 @@ function settingsRow(type, item, name, archived) {
   restore.dataset.id = item.id;
   restore.textContent = 'Restore';
   actions.append(restore);
-  if (archived) {
+  if (archived || type === 'trash-project') {
     const remove = document.createElement('button');
     remove.className = 'row-action danger-action';
     remove.type = 'button';
-    remove.dataset.settingsAction = 'delete';
+    remove.dataset.settingsAction = type === 'trash-project' ? 'purge' : 'delete';
     remove.dataset.type = type;
     remove.dataset.id = item.id;
     remove.textContent = 'Delete';
@@ -103,7 +103,10 @@ function settingsRow(type, item, name, archived) {
 }
 
 function applyAction(app, action, type, id) {
-  if (type === 'trash-project') return app.managers.get('ProjectService').restoreDeleted(id);
+  if (type === 'trash-project') {
+    const projects = app.managers.get('ProjectService');
+    return action === 'restore' ? projects.restoreDeleted(id) : confirmPurgeProject(app, id);
+  }
   const services = {
     client: app.managers.get('ClientService'),
     project: app.managers.get('ProjectService'),
@@ -115,6 +118,17 @@ function applyAction(app, action, type, id) {
     return action === 'restore' ? finance.restore(type, id) : finance.remove(type, id);
   }
   return action === 'restore' ? services[type].restore(id) : services[type].remove(id);
+}
+
+function confirmPurgeProject(app, id) {
+  const project = app.state.get().projects.find(item => item.id === id && item.deletedAt);
+  if (!project) return;
+  const content = document.createElement('div');
+  content.innerHTML = `<div class="modal-heading"><span class="eyebrow">Permanent delete</span><h2>Delete this project forever?</h2><p><strong data-name></strong> will be removed permanently. This cannot be undone.</p></div><div class="modal-actions"><button class="secondary-action" type="button" data-cancel>Cancel</button><button class="primary-action danger-button" type="button" data-confirm>Delete permanently</button></div>`;
+  content.querySelector('[data-name]').textContent = project.name;
+  content.querySelector('[data-cancel]').addEventListener('click', () => app.modal.close());
+  content.querySelector('[data-confirm]').addEventListener('click', () => { app.managers.get('ProjectService').purgeDeleted(id); app.modal.close(); });
+  app.modal.open(content);
 }
 
 function confirmEmptyTrash(app) {

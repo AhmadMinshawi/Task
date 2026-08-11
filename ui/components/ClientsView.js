@@ -1,3 +1,5 @@
+import { openClientForm } from './forms/ClientForm.js';
+
 export function renderClientsView(root, app) {
   let mode = 'active';
   root.innerHTML = `
@@ -81,49 +83,4 @@ function confirmDelete(app, name, onConfirm) {
   content.querySelector('[data-cancel]').addEventListener('click', () => app.modal.close());
   content.querySelector('[data-confirm]').addEventListener('click', () => { onConfirm(); app.modal.close(); });
   app.modal.open(content);
-}
-
-function openClientForm(app, client = null) {
-  const content = document.createElement('div');
-  content.innerHTML = `
-    <div class="modal-heading">
-      <span class="eyebrow">People</span>
-      <h2>${client ? 'Edit client' : 'Add client'}</h2>
-      <p>${client ? 'Update the client profile and keep their contact details current.' : 'Create the client here, then connect projects to their account.'}</p>
-    </div>
-    <form class="modal-form" data-client-form novalidate>
-      <label>Client name<input name="name" type="text" maxlength="120" autocomplete="off" required></label>
-      <label>Email <span class="optional">(optional)</span><input name="email" type="email" maxlength="160" autocomplete="off"></label>
-      <label>Phone <span class="optional">(optional)</span><input name="phone" type="tel" maxlength="40" autocomplete="off"></label>
-      <label>Industry / field <span class="optional">(optional)</span><input name="industry" type="text" maxlength="100" autocomplete="off" placeholder="Real estate, media, education…"></label>
-      <p class="form-error" aria-live="polite"></p>
-      <div class="modal-actions">
-        <button class="secondary-action" type="button" data-cancel>Cancel</button>
-        <button class="primary-action" type="submit">${client ? 'Save changes' : 'Create client'}</button>
-      </div>
-    </form>
-  `;
-  const form = content.querySelector('[data-client-form]');
-  if (client) {
-    form.elements.name.value = client.name || '';
-    form.elements.email.value = client.email || '';
-    form.elements.phone.value = client.phone || '';
-    form.elements.industry.value = client.industry || '';
-  }
-  form.addEventListener('submit', event => {
-    event.preventDefault();
-    const error = form.querySelector('.form-error');
-    error.textContent = '';
-    try {
-      const data = Object.fromEntries(new FormData(form).entries());
-      if (client) app.managers.get('ClientService').update(client.id, data);
-      else app.managers.get('ClientService').create(data);
-      app.modal.close();
-    } catch (err) {
-      error.textContent = err.message || 'Could not create client.';
-    }
-  });
-  content.querySelector('[data-cancel]').addEventListener('click', () => app.modal.close());
-  app.modal.open(content);
-  content.querySelector('[name="name"]').focus();
 }

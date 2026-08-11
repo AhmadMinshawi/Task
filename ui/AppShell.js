@@ -21,13 +21,13 @@ export function renderAppShell(root, app, config) {
         <div><strong>${config.name}</strong><small>${config.version}</small></div>
       </div>
       <nav>
-        <button data-view="home">Home</button>
-        <button data-view="projects">Projects</button>
-        <button data-view="clients">Clients</button>
-        <button data-view="tasks">Tasks</button>
-        <button data-view="finance">Finance</button>
-        <button data-view="calendar">Calendar</button>
-        <button data-view="settings">Settings</button>
+        <button data-view="home"><span class="nav-icon">⌂</span><span class="nav-label">Home</span></button>
+        <button data-view="projects"><span class="nav-icon">▣</span><span class="nav-label">Projects</span></button>
+        <button data-view="clients"><span class="nav-icon">♙</span><span class="nav-label">Clients</span></button>
+        <button data-view="tasks"><span class="nav-icon">✓</span><span class="nav-label">Tasks</span></button>
+        <button data-view="finance"><span class="nav-icon">$</span><span class="nav-label">Finance</span></button>
+        <button data-view="calendar"><span class="nav-icon">□</span><span class="nav-label">Calendar</span></button>
+        <button data-view="settings"><span class="nav-icon">⚙</span><span class="nav-label">Settings</span></button>
       </nav>
     </aside>
     <main class="main">

@@ -82,5 +82,12 @@ export function createProjectService(app) {
     return deleted.length;
   }
 
-  return Object.freeze({ create, update, archive, restore, remove, restoreDeleted, emptyTrash });
+  function purgeDeleted(id) {
+    guard.assertManager('ProjectService');
+    const project = app.repositories.projects.findById(id, { includeDeleted: true });
+    if (!project?.deletedAt) throw new Error('Deleted project not found');
+    return app.repositories.projects.hardDelete(id);
+  }
+
+  return Object.freeze({ create, update, archive, restore, remove, restoreDeleted, emptyTrash, purgeDeleted });
 }

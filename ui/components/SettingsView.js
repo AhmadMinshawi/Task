@@ -3,7 +3,7 @@ export function renderSettingsView(root, app) {
     <div class="page-heading"><div><span class="eyebrow">Workspace</span><h1>Settings</h1></div></div>
     <div class="settings-stack">
       <section class="dashboard-card"><div class="dashboard-card-head"><div><span class="eyebrow">Archive</span><h2>Archived items</h2></div></div><div class="settings-groups" data-archives></div></section>
-      <section class="dashboard-card trash-group" data-trash-group aria-expanded="false"><div class="dashboard-card-head" data-toggle-trash role="button" tabindex="0"><div><span class="eyebrow">Project basket</span><h2>Deleted projects <small data-trash-count></small></h2></div><span class="group-chevron">⌄</span></div><div data-trash-content hidden><p class="settings-note">Deleted projects stay here until you restore them or delete them permanently.</p><div class="settings-list" data-trash></div><div class="trash-footer"><button class="secondary-action danger-action" type="button" data-empty-trash>Empty basket</button></div></div></section>
+      <section class="dashboard-card trash-group" data-trash-group aria-expanded="false"><div class="dashboard-card-head trash-heading" data-toggle-trash role="button" tabindex="0"><div class="trash-title"><span class="trash-icon">♲</span><div><span class="eyebrow">Project basket</span><h2>Deleted projects</h2></div></div><div class="trash-heading-meta"><span class="dashboard-count" data-trash-count></span><span class="group-chevron">⌄</span></div></div><div data-trash-content hidden><p class="settings-note">Open any project to review its details, or restore it. Permanent deletion cannot be undone.</p><div class="settings-list trash-list" data-trash></div><div class="trash-footer"><button class="secondary-action danger-action" type="button" data-empty-trash>Delete all permanently</button></div></div></section>
       <section class="dashboard-card settings-placeholder"><span class="eyebrow">More settings</span><h2>Workspace options</h2><p>New account, appearance and workflow options can be added here next.</p></section>
     </div>
   `;
@@ -12,7 +12,9 @@ export function renderSettingsView(root, app) {
     renderArchives(root.querySelector('[data-archives]'), app.state.get());
     const state = app.state.get();
     renderTrash(root.querySelector('[data-trash]'), state);
-    root.querySelector('[data-trash-count]').textContent = `(${state.projects.filter(project => project.deletedAt).length})`;
+    const deletedCount = state.projects.filter(project => project.deletedAt).length;
+    root.querySelector('[data-trash-count]').textContent = `${deletedCount} deleted`;
+    root.querySelector('[data-empty-trash]').hidden = deletedCount === 0;
   };
 
   const handleClick = event => {
@@ -24,6 +26,11 @@ export function renderSettingsView(root, app) {
     const row = event.target.closest('[data-archive-item]');
     if (row) {
       showArchivedItem(app, row.dataset.type, row.dataset.id);
+      return;
+    }
+    const deletedProject = event.target.closest('[data-deleted-project]');
+    if (deletedProject) {
+      showDeletedProject(app, deletedProject.dataset.id);
       return;
     }
     const group = event.target.closest('[data-toggle-archive-group]')?.closest('[data-archive-group]');
@@ -106,6 +113,11 @@ function settingsRow(type, item, name, archived) {
     row.dataset.type = type;
     row.dataset.id = item.id;
   }
+  if (type === 'trash-project') {
+    row.classList.add('trash-row');
+    row.dataset.deletedProject = '';
+    row.dataset.id = item.id;
+  }
   const copy = document.createElement('div');
   const title = document.createElement('strong');
   title.textContent = name;
@@ -120,7 +132,7 @@ function settingsRow(type, item, name, archived) {
   restore.dataset.settingsAction = 'restore';
   restore.dataset.type = type;
   restore.dataset.id = item.id;
-  restore.textContent = 'Restore';
+  restore.textContent = type === 'trash-project' ? 'Restore project' : 'Restore';
   actions.append(restore);
   if (archived || type === 'trash-project') {
     const remove = document.createElement('button');
@@ -129,11 +141,26 @@ function settingsRow(type, item, name, archived) {
     remove.dataset.settingsAction = type === 'trash-project' ? 'purge' : 'delete';
     remove.dataset.type = type;
     remove.dataset.id = item.id;
-    remove.textContent = 'Delete';
+    remove.textContent = type === 'trash-project' ? 'Delete forever' : 'Delete';
     actions.append(remove);
   }
   row.append(copy, actions);
   return row;
+}
+
+function showDeletedProject(app, id) {
+  const project = app.state.get().projects.find(item => item.id === id && item.deletedAt);
+  if (!project) return;
+  const content = document.createElement('div');
+  content.innerHTML = `<div class="modal-heading"><span class="eyebrow">Deleted project</span><h2 data-name></h2><p>Review the project before choosing whether to restore or permanently delete it.</p></div><div class="archive-details"><p><span>Price per video</span><strong data-price></strong></p><p><span>Total videos</span><strong data-videos></strong></p><p><span>Deadline</span><strong data-deadline></strong></p><p><span>Deleted</span><strong data-deleted></strong></p></div><div class="modal-actions"><button class="secondary-action" type="button" data-close>Close</button><button class="primary-action" type="button" data-restore>Restore project</button></div>`;
+  content.querySelector('[data-name]').textContent = project.name;
+  content.querySelector('[data-price]').textContent = Number(project.pricePerVideo || 0).toLocaleString();
+  content.querySelector('[data-videos]').textContent = String(Number(project.totalVideos) || 0);
+  content.querySelector('[data-deadline]').textContent = project.deadline ? formatDate(project.deadline) : 'No deadline';
+  content.querySelector('[data-deleted]').textContent = formatDate(project.deletedAt);
+  content.querySelector('[data-close]').addEventListener('click', () => app.modal.close());
+  content.querySelector('[data-restore]').addEventListener('click', () => { app.managers.get('ProjectService').restoreDeleted(id); app.modal.close(); });
+  app.modal.open(content);
 }
 
 function showArchivedItem(app, type, id) {

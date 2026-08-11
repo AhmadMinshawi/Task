@@ -1,0 +1,46 @@
+import { recordMeta } from '../../core/record.js';
+
+export function createClientService(app) {
+  const guard = app.managers.get('MutationGuard');
+  function create({ name, email = '', phone = '' }) {
+    guard.assertManager('ClientService');
+    if (!String(name ?? '').trim()) throw new Error('Client name is required');
+
+    const record = {
+      id: crypto.randomUUID(),
+      ...recordMeta(app),
+      name: String(name).trim(),
+      email: String(email).trim(),
+      phone: String(phone).trim()
+    };
+
+    app.repositories.clients.insert(record);
+    app.events.emit('client.created', record);
+    return record;
+  }
+
+  function update(id, patch) {
+    guard.assertManager('ClientService');
+    const safe = {};
+    if (patch.name !== undefined) {
+      if (!String(patch.name).trim()) throw new Error('Client name is required');
+      safe.name = String(patch.name).trim();
+    }
+    if (patch.email !== undefined) safe.email = String(patch.email).trim();
+    if (patch.phone !== undefined) safe.phone = String(patch.phone).trim();
+    safe.updatedAt = new Date().toISOString();
+
+    const result = app.repositories.clients.update(id, safe);
+    app.events.emit('client.updated', result);
+    return result;
+  }
+
+  function remove(id) {
+    guard.assertManager('ClientService');
+    const result = app.repositories.clients.softDelete(id);
+    app.events.emit('client.deleted', result);
+    return result;
+  }
+
+  return Object.freeze({ create, update, remove });
+}

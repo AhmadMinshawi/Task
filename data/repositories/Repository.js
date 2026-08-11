@@ -36,4 +36,23 @@ export class Repository {
     const deletedAt = new Date().toISOString();
     this.update(id, { deletedAt, updatedAt: deletedAt });
   }
+
+  restoreDeleted(id) {
+    let restored = null;
+    this.app.state.update(state => {
+      const row = (state[this.collection] ?? []).find(x => x.id === id && x.deletedAt);
+      if (!row) throw new Error(`${this.collection} deleted record not found`);
+      row.deletedAt = null;
+      row.archivedAt = null;
+      row.updatedAt = new Date().toISOString();
+      restored = structuredClone(row);
+    });
+    return restored;
+  }
+
+  hardDelete(id) {
+    this.app.state.update(state => {
+      state[this.collection] = (state[this.collection] ?? []).filter(row => row.id !== id);
+    });
+  }
 }

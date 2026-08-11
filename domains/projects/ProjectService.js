@@ -1,8 +1,8 @@
-import { recordMeta, normalizeMoney, normalizeQuantity } from '../../core/record.js';
+import { recordMeta, normalizeMoney, normalizeQuantity, normalizeOptionalDate } from '../../core/record.js';
 
 export function createProjectService(app) {
   const guard = app.managers.get('MutationGuard');
-  function create({ name, clientId = null, pricePerVideo = 0, totalVideos = 0, pinned = false }) {
+  function create({ name, clientId = null, pricePerVideo = 0, totalVideos = 0, pinned = false, deadline = '' }) {
     guard.assertManager('ProjectService');
     if (!String(name ?? '').trim()) throw new Error('Project name is required');
     const meta = recordMeta(app);
@@ -19,7 +19,8 @@ export function createProjectService(app) {
       name: String(name).trim(),
       pricePerVideo: normalizeMoney(pricePerVideo, 'pricePerVideo'),
       totalVideos: normalizeQuantity(totalVideos, 'totalVideos'),
-      pinned: Boolean(pinned)
+      pinned: Boolean(pinned),
+      deadline: normalizeOptionalDate(deadline)
     };
 
     app.repositories.projects.insert(record);
@@ -44,6 +45,7 @@ export function createProjectService(app) {
     if (patch.pricePerVideo !== undefined) safe.pricePerVideo = normalizeMoney(patch.pricePerVideo, 'pricePerVideo');
     if (patch.totalVideos !== undefined) safe.totalVideos = normalizeQuantity(patch.totalVideos, 'totalVideos');
     if (patch.pinned !== undefined) safe.pinned = Boolean(patch.pinned);
+    if (patch.deadline !== undefined) safe.deadline = normalizeOptionalDate(patch.deadline);
     safe.updatedAt = new Date().toISOString();
 
     const result = app.repositories.projects.update(id, safe);
@@ -68,5 +70,17 @@ export function createProjectService(app) {
     return app.repositories.projects.update(id, { archivedAt: null, updatedAt: new Date().toISOString() });
   }
 
-  return Object.freeze({ create, update, archive, restore, remove });
+  function restoreDeleted(id) {
+    guard.assertManager('ProjectService');
+    return app.repositories.projects.restoreDeleted(id);
+  }
+
+  function emptyTrash() {
+    guard.assertManager('ProjectService');
+    const deleted = app.repositories.projects.all({ includeDeleted: true }).filter(project => project.deletedAt);
+    for (const project of deleted) app.repositories.projects.hardDelete(project.id);
+    return deleted.length;
+  }
+
+  return Object.freeze({ create, update, archive, restore, remove, restoreDeleted, emptyTrash });
 }

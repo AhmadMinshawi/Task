@@ -1,25 +1,28 @@
-import { recordMeta, normalizeOptionalDate } from '../../core/record.js';
+import { recordMeta, normalizeOptionalDate, normalizeMoney } from '../../core/record.js';
 
 const STATUSES = new Set(['todo', 'in_progress', 'done', 'cancelled']);
 
 export function createTaskService(app) {
   const guard = app.managers.get('MutationGuard');
-  function create({ title, projectId, dueDate = '', status = 'todo' }) {
+  function create({ title, projectId = null, dueDate = '', status = 'todo', amount = 0, incomeDate = '' }) {
     guard.assertManager('TaskService');
     if (!String(title ?? '').trim()) throw new Error('Task title is required');
-    if (!projectId) throw new Error('Project is required');
     if (!STATUSES.has(status)) throw new Error('Invalid task status');
 
-    const project = app.repositories.projects.findById(projectId);
-    if (!project) throw new Error('Project not found');
+    if (projectId) {
+      const project = app.repositories.projects.findById(projectId);
+      if (!project) throw new Error('Project not found');
+    }
 
     const record = {
       id: crypto.randomUUID(),
       ...recordMeta(app),
-      projectId,
+      projectId: projectId || null,
       title: String(title).trim(),
       status,
-      dueDate: normalizeOptionalDate(dueDate)
+      dueDate: normalizeOptionalDate(dueDate),
+      amount: normalizeMoney(amount),
+      incomeDate: normalizeOptionalDate(incomeDate)
     };
 
     app.repositories.tasks.insert(record);
@@ -39,6 +42,12 @@ export function createTaskService(app) {
       safe.status = patch.status;
     }
     if (patch.dueDate !== undefined) safe.dueDate = normalizeOptionalDate(patch.dueDate);
+    if (patch.projectId !== undefined) {
+      if (patch.projectId && !app.repositories.projects.findById(patch.projectId)) throw new Error('Project not found');
+      safe.projectId = patch.projectId || null;
+    }
+    if (patch.amount !== undefined) safe.amount = normalizeMoney(patch.amount);
+    if (patch.incomeDate !== undefined) safe.incomeDate = normalizeOptionalDate(patch.incomeDate);
     safe.updatedAt = new Date().toISOString();
 
     const result = app.repositories.tasks.update(id, safe);

@@ -3,7 +3,7 @@ export function renderClientsView(root, app) {
   root.innerHTML = `
     <div class="page-heading">
       <div><span class="eyebrow">People</span><h1>Clients</h1></div>
-      <div class="page-actions"><button class="secondary-action is-active" type="button" data-client-mode="active">Active</button><button class="secondary-action" type="button" data-client-mode="archive">Archive</button><button class="primary-action" type="button" data-add-client>Add client</button></div>
+      <button class="primary-action" type="button" data-add-client>Add client</button>
     </div>
     <div class="clients-grid" data-clients></div>
   `;

@@ -37,14 +37,8 @@ export function createPersistenceManager(app, repository) {
   }
 
   function watch() {
-    const events = [
-      'client.created','client.updated','client.deleted',
-      'project.created','project.updated','project.deleted',
-      'task.created','task.updated','task.deleted',
-      'payment.created','delivery.created',
-      'expense.created','expense.updated','expense.deleted'
-    ];
-    for (const event of events) unsubs.push(app.events.on(event, () => void flush().catch(() => {})));
+    if (unsubs.length) return;
+    unsubs.push(app.state.subscribe(() => void flush().catch(() => {})));
   }
 
   function stop() {

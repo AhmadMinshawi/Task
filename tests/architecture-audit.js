@@ -36,6 +36,7 @@ for (const file of [
 ]) assert.equal(exists(file), true, `${file} must remain an extracted UI module`);
 
 assert.equal(exists('domains/projects/ProjectStatus.js'), true, 'project lifecycle rules must remain outside the UI');
+assert.equal(read('data/persistence/PersistenceManager.js').includes('app.state.subscribe'), true, 'persistence must observe all state mutations');
 
 for (const [view, form] of [
   ['ui/components/ProjectsView.js', './forms/ProjectForm.js'],

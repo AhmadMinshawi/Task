@@ -65,7 +65,7 @@ nav button:hover{background:var(--surface-2);color:var(--text)}
 .projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
 .project-card,.project-summary{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
 .project-card{padding:16px}.project-card-head{display:flex;justify-content:space-between;gap:10px}
-.project-card h3{margin:4px 0 0;font-size:17px}.pin-button{border:0;background:transparent;color:var(--muted);font-size:20px}
+.project-card h3{margin:4px 0 0;font-size:17px}.pin-button{border:0;background:transparent;color:var(--muted);font-size:20px}.pin-button[aria-pressed="true"]{color:#fbbf24}
 .project-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
 .project-metrics div{background:var(--surface-2);border-radius:9px;padding:10px}
 .project-metrics span,.project-summary span{display:block;color:var(--muted);font-size:11px}
@@ -110,3 +110,5 @@ nav button:hover{background:var(--surface-2);color:var(--text)}
 .dashboard-expense .quick-add{box-shadow:var(--shadow)}.dashboard-health{min-height:100%}.health-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.health-grid div{background:var(--surface-2);border-radius:10px;padding:12px}.health-grid strong{display:block;margin-top:5px;font-size:16px}.dashboard-empty{color:var(--muted);font-size:12px;padding:18px 8px;margin:0;text-align:center}
 @media(max-width:960px){.overview-stats{grid-template-columns:1fr 1fr}.dashboard-grid{grid-template-columns:1fr}}
 @media(max-width:620px){.overview-stats{grid-template-columns:1fr 1fr}.dashboard-project-row{grid-template-columns:1fr auto}.dashboard-project-row .progress-track{grid-column:1/-1;grid-row:2}.dashboard-period{display:none}.topbar{padding:0 14px}.topbar>div:first-child{display:none}.topbar-actions{width:100%}.search{flex:1}.search input{width:100%}}
+
+.modal-heading{padding-right:30px;margin-bottom:20px}.modal-heading h2{font-size:22px;margin:5px 0}.modal-heading p{color:var(--muted);font-size:13px;line-height:1.5;margin:0}.modal-form label{display:block;color:var(--muted);font-size:12px;margin-top:13px}.modal-form input,.modal-form select{display:block;width:100%;margin-top:6px;padding:10px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface-2);color:var(--text);outline:0}.modal-form input:focus,.modal-form select:focus{border-color:var(--accent)}.form-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}.modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:8px}.empty-state{grid-column:1/-1;text-align:center;padding:34px;background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius)}.empty-state p{color:var(--muted);font-size:13px;margin:6px 0 0}@media(max-width:560px){.form-columns{grid-template-columns:1fr}.modal-content{padding:20px}}

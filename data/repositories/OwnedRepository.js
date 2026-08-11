@@ -23,4 +23,14 @@ export class OwnedRepository extends Repository {
     if (record.ownerId !== this.#ownerId) throw new Error('Owner mismatch');
     return super.insert(record);
   }
+
+  restoreDeleted(id) {
+    this.findById(id, { includeDeleted: true });
+    return super.restoreDeleted(id);
+  }
+
+  hardDelete(id) {
+    this.findById(id, { includeDeleted: true });
+    return super.hardDelete(id);
+  }
 }

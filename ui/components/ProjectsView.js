@@ -61,7 +61,8 @@ export function renderProjectsView(root, app) {
     }
     const action = event.target.closest('[data-edit-project],[data-archive-project],[data-restore-project],[data-delete-project]');
     if (!action) return;
-    const project = app.state.get().projects.find(x => x.id === (action.dataset.archiveProject || action.dataset.restoreProject || action.dataset.deleteProject) && !x.deletedAt);
+    const projectId = action.dataset.editProject || action.dataset.archiveProject || action.dataset.restoreProject || action.dataset.deleteProject;
+    const project = app.state.get().projects.find(x => x.id === projectId && !x.deletedAt);
     if (!project) return;
     const service = app.managers.get('ProjectService');
     if (action.matches('[data-edit-project]')) openProjectForm(app, project);

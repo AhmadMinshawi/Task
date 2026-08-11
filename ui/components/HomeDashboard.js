@@ -1,15 +1,12 @@
-import { renderFinanceSummary } from './FinanceSummary.js';
 import { renderExpenseQuickAdd } from './ExpenseQuickAdd.js';
 
 export function renderHomeDashboard(root, app) {
-  let financeHidden = false;
   root.innerHTML = `
     <div class="page-heading">
       <div><span class="eyebrow">Overview</span><h1>Command Center</h1></div>
-      <span class="dashboard-period" data-period></span>
+      <button class="expense-launch" type="button" data-add-expense aria-label="Add expense" title="Add expense"><span>＋</span></button>
     </div>
     <div class="overview-stats" data-overview-stats></div>
-    <div data-finance-summary></div>
     <div class="dashboard-grid">
       <section class="dashboard-card dashboard-projects">
         <div class="dashboard-card-head">
@@ -25,19 +22,8 @@ export function renderHomeDashboard(root, app) {
         </div>
         <div class="dashboard-list" data-next-tasks></div>
       </section>
-      <div class="dashboard-expense" data-expense-add></div>
-      <section class="dashboard-card dashboard-health">
-        <span class="eyebrow">Workspace health</span>
-        <h2>At a glance</h2>
-        <div class="health-grid" data-health></div>
-      </section>
     </div>
   `;
-
-  const month = new Date().toISOString().slice(0, 7);
-  root.querySelector('[data-period]').textContent = new Intl.DateTimeFormat('en', {
-    month: 'long', year: 'numeric'
-  }).format(new Date());
 
   function textNode(tag, className, text) {
     const element = document.createElement(tag);
@@ -118,7 +104,7 @@ export function renderHomeDashboard(root, app) {
     }
   }
 
-  function renderOverview(state, finance) {
+  function renderOverview(state) {
     const stats = [
       ['Clients', state.clients.filter(x => !x.deletedAt && !x.archivedAt).length],
       ['Projects', state.projects.filter(x => !x.deletedAt && !x.archivedAt).length],
@@ -131,44 +117,22 @@ export function renderHomeDashboard(root, app) {
       card.append(textNode('span', '', label), textNode('strong', '', String(value)));
       return card;
     }));
-
-    const health = root.querySelector('[data-health]');
-    health.replaceChildren();
-    for (const [label, value] of [
-      ['Portfolio value', money(finance.projectValue, financeHidden)],
-      ['Collected all time', money(finance.allTimeCollected, financeHidden)],
-      ['Payments', state.payments.filter(x => !x.deletedAt && !x.archivedAt).length],
-      ['Expenses', state.expenses.filter(x => !x.deletedAt && !x.archivedAt).length]
-    ]) {
-      const item = document.createElement('div');
-      item.append(textNode('span', '', label), textNode('strong', '', String(value)));
-      health.append(item);
-    }
   }
 
   const refresh = () => {
     const state = app.state.get();
-    const summary = app.managers.get('FinanceManager').portfolioSummary(month);
-    renderFinanceSummary(root.querySelector('[data-finance-summary]'), summary, {
-      hidden: financeHidden,
-      onToggle: () => {
-        financeHidden = !financeHidden;
-        refresh();
-      }
-    });
-    renderOverview(state, summary);
+    renderOverview(state);
     renderProjects(state);
     renderTasks(state);
   };
 
   refresh();
 
-  renderExpenseQuickAdd(root.querySelector('[data-expense-add]'), async data => {
-    app.managers.get('ExpenseService').create(data);
-    refresh();
-  });
-
   const handleTaskCompletion = event => {
+    if (event.target.closest('[data-add-expense]')) {
+      openExpenseModal(app);
+      return;
+    }
     const button = event.target.closest('[data-complete-task]');
     if (!button) return;
     app.managers.get('TaskService').update(button.dataset.completeTask, { status: 'done' });
@@ -182,13 +146,19 @@ export function renderHomeDashboard(root, app) {
   };
 }
 
+function openExpenseModal(app) {
+  const content = document.createElement('div');
+  content.innerHTML = `<div class="modal-heading"><span class="eyebrow">Finance</span><h2>Add expense</h2><p>Record a business expense without leaving the dashboard.</p></div><div data-expense-form></div>`;
+  renderExpenseQuickAdd(content.querySelector('[data-expense-form]'), data => {
+    app.managers.get('ExpenseService').create(data);
+    app.modal.close();
+  });
+  app.modal.open(content);
+  content.querySelector('[name="amount"]').focus();
+}
+
 function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(date);
-}
-
-function money(value, hidden) {
-  if (hidden) return '•••••';
-  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(Number(value) || 0);
 }

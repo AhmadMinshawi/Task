@@ -49,12 +49,12 @@ export function renderTasksView(root, app) {
       return;
     }
     const action = event.target.closest('[data-toggle-task],[data-edit-task],[data-archive-task],[data-restore-task],[data-delete-task]');
-    if (!action) return;
-    const row = action.closest('[data-task-id]');
+    const row = (action || event.target).closest('[data-task-id]');
     const task = app.state.get().tasks.find(x => x.id === row?.dataset.taskId && !x.deletedAt);
     if (!task) return;
     const service = app.managers.get('TaskService');
-    if (action.matches('[data-toggle-task]')) service.update(task.id, { status: task.status === 'done' ? 'todo' : 'done' });
+    if (!action) openTaskForm(app, app.state.get().projects.filter(project => !project.deletedAt && !project.archivedAt), task);
+    else if (action.matches('[data-toggle-task]')) service.update(task.id, { status: task.status === 'done' ? 'todo' : 'done' });
     else if (action.matches('[data-edit-task]')) openTaskForm(app, app.state.get().projects.filter(project => !project.deletedAt && !project.archivedAt), task);
     else if (action.matches('[data-archive-task]')) service.archive(task.id);
     else if (action.matches('[data-restore-task]')) service.restore(task.id);

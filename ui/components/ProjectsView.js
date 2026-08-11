@@ -1,10 +1,11 @@
 import { createProjectCard } from './ProjectCard.js';
 
 export function renderProjectsView(root, app) {
+  let mode = 'active';
   root.innerHTML = `
     <div class="page-heading">
       <div><span class="eyebrow">Workspace</span><h1>Projects</h1></div>
-      <button class="primary-action" type="button" data-add-project>Add project</button>
+      <div class="page-actions"><button class="secondary-action is-active" type="button" data-project-mode="active">Active</button><button class="secondary-action" type="button" data-project-mode="archive">Archive</button><button class="primary-action" type="button" data-add-project>Add project</button></div>
     </div>
     <div class="projects-grid" data-projects></div>
   `;
@@ -17,7 +18,7 @@ export function renderProjectsView(root, app) {
     container.replaceChildren();
 
     const projects = state.projects
-      .filter(project => !project.deletedAt)
+      .filter(project => !project.deletedAt && (mode === 'archive' ? project.archivedAt : !project.archivedAt))
       .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)));
 
     if (!projects.length) {
@@ -39,6 +40,14 @@ export function renderProjectsView(root, app) {
   const unsubscribe = app.state.subscribe(render);
 
   const handleClick = event => {
+    const modeButton = event.target.closest('[data-project-mode]');
+    if (modeButton) {
+      mode = modeButton.dataset.projectMode;
+      root.querySelectorAll('[data-project-mode]').forEach(button => button.classList.toggle('is-active', button === modeButton));
+      root.querySelector('[data-add-project]').hidden = mode === 'archive';
+      render();
+      return;
+    }
     const pin = event.target.closest('[data-pin-project]');
     if (pin) {
       const project = app.state.get().projects.find(x => x.id === pin.dataset.pinProject && !x.deletedAt);
@@ -47,6 +56,14 @@ export function renderProjectsView(root, app) {
     }
 
     if (event.target.closest('[data-add-project]')) openProjectForm(app);
+    const action = event.target.closest('[data-archive-project],[data-restore-project],[data-delete-project]');
+    if (!action) return;
+    const project = app.state.get().projects.find(x => x.id === (action.dataset.archiveProject || action.dataset.restoreProject || action.dataset.deleteProject) && !x.deletedAt);
+    if (!project) return;
+    const service = app.managers.get('ProjectService');
+    if (action.matches('[data-archive-project]')) service.archive(project.id);
+    else if (action.matches('[data-restore-project]')) service.restore(project.id);
+    else confirmProjectDelete(app, project, () => service.remove(project.id));
   };
   root.addEventListener('click', handleClick);
 
@@ -54,6 +71,15 @@ export function renderProjectsView(root, app) {
     unsubscribe();
     root.removeEventListener('click', handleClick);
   };
+}
+
+function confirmProjectDelete(app, project, onConfirm) {
+  const content = document.createElement('div');
+  content.innerHTML = `<div class="modal-heading"><span class="eyebrow">Delete project</span><h2>Delete this project?</h2><p><strong data-name></strong> will be removed. Its finance records and tasks remain stored until you manage them separately.</p></div><div class="modal-actions"><button class="secondary-action" type="button" data-cancel>Cancel</button><button class="primary-action danger-button" type="button" data-confirm>Delete</button></div>`;
+  content.querySelector('[data-name]').textContent = project.name;
+  content.querySelector('[data-cancel]').addEventListener('click', () => app.modal.close());
+  content.querySelector('[data-confirm]').addEventListener('click', () => { onConfirm(); app.modal.close(); });
+  app.modal.open(content);
 }
 
 function openProjectForm(app) {

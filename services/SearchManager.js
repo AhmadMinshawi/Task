@@ -16,7 +16,7 @@ export function createSearchManager(app) {
 
     for (const [type, keys] of Object.entries(fields)) {
       for (const item of state[type] ?? []) {
-        if (item.deletedAt) continue;
+        if (item.deletedAt || item.archivedAt) continue;
 
         const values = keys.map(key => String(item[key] ?? '').toLocaleLowerCase());
         const prefix = values.some(value => value.startsWith(q));

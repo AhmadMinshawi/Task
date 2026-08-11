@@ -5,7 +5,7 @@ export function renderProjectsView(root, app) {
   root.innerHTML = `
     <div class="page-heading">
       <div><span class="eyebrow">Workspace</span><h1>Projects</h1></div>
-      <div class="page-actions"><button class="secondary-action is-active" type="button" data-project-mode="active">Active</button><button class="secondary-action" type="button" data-project-mode="archive">Archive</button><button class="primary-action" type="button" data-add-project>Add project</button></div>
+      <button class="primary-action" type="button" data-add-project>Add project</button>
     </div>
     <div class="projects-grid" data-projects></div>
   `;
@@ -97,6 +97,7 @@ function openProjectForm(app) {
         <label>Price per video<input name="pricePerVideo" type="number" min="0" step="0.01" value="0" required></label>
         <label>Total videos<input name="totalVideos" type="number" min="0" step="1" value="0" required></label>
       </div>
+      <label>Deadline <span class="optional">(optional)</span><input name="deadline" type="date"></label>
       <p class="form-error" aria-live="polite"></p>
       <div class="modal-actions">
         <button class="secondary-action" type="button" data-cancel>Cancel</button>

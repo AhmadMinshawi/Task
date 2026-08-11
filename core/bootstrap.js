@@ -17,6 +17,7 @@ import { createMutationGuard } from './MutationGuard.js';
 import { supabase } from '../security/supabaseClient.js';
 import { createStateRepository } from '../data/persistence/StateRepository.js';
 import { createPersistenceManager } from '../data/persistence/PersistenceManager.js';
+import { createDeadlineManager } from '../services/DeadlineManager.js';
 
 const app = createApp();
 app.repositories = createRepositories(app);
@@ -32,6 +33,7 @@ app.managers.register('ProjectService', createProjectService(app));
 app.managers.register('ClientService', createClientService(app));
 app.managers.register('TaskService', createTaskService(app));
 app.managers.register('SearchManager', createSearchManager(app));
+app.managers.register('DeadlineManager', createDeadlineManager(app));
 
 const stateRepository = createStateRepository(supabase);
 app.managers.register('PersistenceManager', createPersistenceManager(app, stateRepository));

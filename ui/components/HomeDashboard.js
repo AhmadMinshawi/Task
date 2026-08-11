@@ -1,4 +1,5 @@
 import { renderExpenseQuickAdd } from './ExpenseQuickAdd.js';
+import { deadlineLabel } from '../../services/DeadlineManager.js';
 
 export function renderHomeDashboard(root, app) {
   root.innerHTML = `
@@ -7,6 +8,10 @@ export function renderHomeDashboard(root, app) {
       <button class="expense-launch" type="button" data-add-expense aria-label="Add expense" title="Add expense"><span>＋</span></button>
     </div>
     <div class="overview-stats" data-overview-stats></div>
+    <section class="dashboard-card deadline-panel">
+      <div class="dashboard-card-head"><div><span class="eyebrow">Attention</span><h2>Deadlines</h2></div><span class="dashboard-count" data-deadline-count></span></div>
+      <div class="deadline-list" data-deadlines></div>
+    </section>
     <div class="dashboard-grid">
       <section class="dashboard-card dashboard-projects">
         <div class="dashboard-card-head">
@@ -132,9 +137,32 @@ export function renderHomeDashboard(root, app) {
     }));
   }
 
+  function renderDeadlines() {
+    const alerts = app.managers.get('DeadlineManager').alerts();
+    const container = root.querySelector('[data-deadlines]');
+    root.querySelector('[data-deadline-count]').textContent = `${alerts.length} alert${alerts.length === 1 ? '' : 's'}`;
+    container.replaceChildren();
+    if (!alerts.length) {
+      container.append(textNode('p', 'dashboard-empty', 'No overdue or upcoming deadlines in the next 7 days.'));
+      return;
+    }
+    for (const alert of alerts.slice(0, 8)) {
+      const row = document.createElement('article');
+      row.className = `deadline-row urgency-${alert.urgency}`;
+      row.dataset[alert.type === 'project' ? 'openProject' : 'openTask'] = '';
+      row.dataset[alert.type === 'project' ? 'projectId' : 'taskId'] = alert.id;
+      const badge = textNode('span', 'deadline-kind', alert.type === 'project' ? 'P' : 'T');
+      const copy = document.createElement('div');
+      copy.append(textNode('strong', '', alert.title), textNode('small', '', `${alert.type === 'project' ? 'Project' : 'Task'} · ${formatDate(alert.date)}`));
+      row.append(badge, copy, textNode('strong', 'deadline-label', deadlineLabel(alert)));
+      container.append(row);
+    }
+  }
+
   const refresh = () => {
     const state = app.state.get();
     renderOverview(state);
+    renderDeadlines();
     renderProjects(state);
     renderTasks(state);
   };

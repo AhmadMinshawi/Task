@@ -24,6 +24,7 @@ assert.equal(source.includes("security/rls.sql"), false, 'no source reference to
 const bootstrap = read('core/bootstrap.js');
 assert.equal(bootstrap.includes("register('FinanceEngine'"), true);
 assert.equal(bootstrap.includes("register('FinanceManager'"), true);
+assert.equal(bootstrap.includes("register('DeadlineManager'"), true);
 assert.equal(bootstrap.indexOf("register('FinanceEngine'") < bootstrap.indexOf("register('FinanceManager'"), true);
 assert.equal(bootstrap.includes('MemoryAdapter'), false, 'production bootstrap must not use memory fallback');
 

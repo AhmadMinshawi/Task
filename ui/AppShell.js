@@ -11,6 +11,7 @@ import { renderCalendarView } from './components/CalendarView.js';
 import { renderSettingsView } from './components/SettingsView.js';
 
 export function renderAppShell(root, app, config) {
+  app.shellCleanup?.();
   const ui = createUIManager(app);
   app.ui = ui;
 
@@ -21,7 +22,7 @@ export function renderAppShell(root, app, config) {
         <div><strong>${config.name}</strong><small>${config.version}</small></div>
       </div>
       <nav>
-        <button data-view="home"><span class="nav-icon">⌂</span><span class="nav-label">Home</span></button>
+        <button data-view="home"><span class="nav-icon">⌂</span><span class="nav-label">Home</span><span class="nav-badge" data-alert-count hidden></span></button>
         <button data-view="projects"><span class="nav-icon">▣</span><span class="nav-label">Projects</span></button>
         <button data-view="clients"><span class="nav-icon">♙</span><span class="nav-label">Clients</span></button>
         <button data-view="tasks"><span class="nav-icon">✓</span><span class="nav-label">Tasks</span></button>
@@ -89,6 +90,10 @@ export function renderAppShell(root, app, config) {
       return;
     }
     if (event.target.closest('button, input, select, textarea, a')) return;
+    if (event.target.closest('[data-open-task]')) {
+      routes.tasks();
+      return;
+    }
     const button = event.target.closest('.open-project, .project-card, [data-open-project]');
     if (!button) return;
     const id = button.dataset.projectId || button.closest('[data-project-id]')?.dataset.projectId;
@@ -121,4 +126,15 @@ export function renderAppShell(root, app, config) {
   });
 
   mount('HomeView', renderHomeDashboard);
+
+  const renderAlertCount = () => {
+    const count = app.managers.get('DeadlineManager').count();
+    const badge = root.querySelector('[data-alert-count]');
+    if (!badge) return;
+    badge.textContent = count > 99 ? '99+' : String(count);
+    badge.hidden = count === 0;
+  };
+  renderAlertCount();
+  const unsubscribeAlertCount = app.state.subscribe(renderAlertCount);
+  app.shellCleanup = () => unsubscribeAlertCount();
 }

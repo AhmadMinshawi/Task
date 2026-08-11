@@ -50,13 +50,27 @@ export function renderAppShell(root, app, config) {
     ui.register(name, { destroy: cleanup });
   }
 
+  let activeRoute = 'home';
+  let workspaceReturnRoute = 'projects';
+
   const routes = {
-    home: () => mount('HomeView', renderHomeDashboard),
-    projects: () => mount('ProjectsView', renderProjectsView),
-    clients: () => mount('ClientsView', renderClientsView),
-    tasks: () => mount('TasksView', renderTasksView),
-    finance: () => mount('FinanceView', renderHomeDashboard)
+    home: () => navigateTo('home', 'HomeView', renderHomeDashboard),
+    projects: () => navigateTo('projects', 'ProjectsView', renderProjectsView),
+    clients: () => navigateTo('clients', 'ClientsView', renderClientsView),
+    tasks: () => navigateTo('tasks', 'TasksView', renderTasksView),
+    finance: () => navigateTo('finance', 'FinanceView', renderHomeDashboard)
   };
+
+  function navigateTo(route, name, render) {
+    activeRoute = route;
+    mount(name, render);
+  }
+
+  function openProject(projectId) {
+    workspaceReturnRoute = activeRoute === 'project' ? workspaceReturnRoute : activeRoute;
+    activeRoute = 'project';
+    mount('ProjectWorkspace', (r, a) => renderProjectWorkspace(r, a, projectId));
+  }
 
   for (const [name, handler] of Object.entries(routes)) {
     root.querySelector(`[data-view="${name}"]`).addEventListener('click', handler);
@@ -64,13 +78,13 @@ export function renderAppShell(root, app, config) {
 
   view.addEventListener('click', event => {
     if (event.target.closest('[data-back]')) {
-      routes.projects();
+      (routes[workspaceReturnRoute] || routes.projects)();
       return;
     }
     const button = event.target.closest('.open-project');
     if (!button) return;
     const id = button.dataset.projectId || button.closest('.project-card')?.dataset.projectId;
-    if (id) mount('ProjectWorkspace', (r, a) => renderProjectWorkspace(r, a, id));
+    if (id) openProject(id);
   });
 
 
@@ -88,7 +102,7 @@ export function renderAppShell(root, app, config) {
       searchResults.hidden = true;
 
       if (result.type === 'projects') {
-        mount('ProjectWorkspace', (r, a) => renderProjectWorkspace(r, a, result.item.id));
+        openProject(result.item.id);
       } else if (result.type === 'clients') {
         routes.clients();
       } else if (result.type === 'tasks') {

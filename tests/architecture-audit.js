@@ -44,6 +44,8 @@ for (const file of [
   'ui/components/settings/TrashPanel.js'
 ]) assert.equal(exists(file), true, `${file} must remain an extracted UI module`);
 assert.equal(exists('ui/components/ProfileView.js'), true, 'profile must remain an extracted UI module');
+assert.equal(exists('ui/components/AccountMenu.js'), true, 'account controls must remain an extracted UI module');
+assert.equal(read('ui/AppShell.js').includes('mountAccountMenu'), true, 'AppShell must delegate the account menu');
 assert.equal(exists('ui/utils/sortRecords.js'), true, 'shared collection sorting must not be duplicated in views');
 assert.equal(read('ui/components/ProjectsView.js').includes('data-project-mode'), false, 'projects must not keep the removed archive mode');
 assert.equal(read('ui/components/ClientsView.js').includes('data-client-mode'), false, 'clients must not keep the removed archive mode');

@@ -11,6 +11,7 @@ import { renderCalendarView } from './components/CalendarView.js';
 import { renderSettingsView } from './components/SettingsView.js';
 import { mountNotificationCenter } from './components/NotificationCenter.js';
 import { renderProfileView } from './components/ProfileView.js';
+import { mountAccountMenu } from './components/AccountMenu.js';
 
 export function renderAppShell(root, app, config) {
   app.shellCleanup?.();
@@ -25,13 +26,11 @@ export function renderAppShell(root, app, config) {
         <div class="notification-center" data-notification-center></div>
       </div>
       <nav>
-        <button data-view="home" aria-label="Home" title="Home"><span class="nav-icon">⌂</span><span class="nav-label">Home</span></button>
         <button data-view="projects" aria-label="Projects" title="Projects"><span class="nav-icon">▣</span><span class="nav-label">Projects</span></button>
         <button data-view="clients" aria-label="Clients" title="Clients"><span class="nav-icon">♙</span><span class="nav-label">Clients</span></button>
         <button data-view="tasks" aria-label="Tasks" title="Tasks"><span class="nav-icon">✓</span><span class="nav-label">Tasks</span></button>
         <button data-view="finance" aria-label="Finance" title="Finance"><span class="nav-icon">$</span><span class="nav-label">Finance</span></button>
         <button data-view="calendar" aria-label="Calendar" title="Calendar"><span class="nav-icon">□</span><span class="nav-label">Calendar</span></button>
-        <button data-view="settings" aria-label="Settings" title="Settings"><span class="nav-icon">⚙</span><span class="nav-label">Settings</span></button>
       </nav>
     </aside>
     <main class="main">
@@ -42,8 +41,8 @@ export function renderAppShell(root, app, config) {
             <input id="global-search" autocomplete="off" placeholder="Search by first letter…">
             <div class="search-results" id="search-results" hidden></div>
           </div>
-          <button class="profile-button" type="button" data-view="profile" aria-label="Open profile"><span class="profile-avatar" data-profile-avatar></span><span>Profile</span></button>
-          <button class="signout-button" type="button" data-signout>Sign out</button>
+          <button class="header-home" type="button" data-view="home" aria-label="Home"><span>⌂</span><strong>Home</strong></button>
+          <div class="account-menu" data-account-menu></div>
         </div>
       </header>
       <section id="view" class="view"></section>
@@ -53,7 +52,6 @@ export function renderAppShell(root, app, config) {
 
   const view = root.querySelector('#view');
   const authUser = app.managers.get('AuthManager').user();
-  root.querySelector('[data-profile-avatar]').textContent = (authUser?.name || authUser?.email || 'U').slice(0, 1).toUpperCase();
   app.modal = createModalController(root.querySelector('#modal-root'));
 
   function mount(name, render) {
@@ -90,6 +88,7 @@ export function renderAppShell(root, app, config) {
       if (active) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
     });
+    root.querySelector('[data-account-trigger]')?.classList.toggle('is-active', ['profile', 'settings'].includes(selected));
   }
 
   function openProject(projectId) {
@@ -100,7 +99,7 @@ export function renderAppShell(root, app, config) {
   }
 
   for (const [name, handler] of Object.entries(routes)) {
-    root.querySelector(`[data-view="${name}"]`).addEventListener('click', handler);
+    root.querySelector(`[data-view="${name}"]`)?.addEventListener('click', handler);
   }
 
   view.addEventListener('click', event => {
@@ -122,11 +121,6 @@ export function renderAppShell(root, app, config) {
     const projectCard = event.target.closest('.project-card');
     const id = projectCard?.dataset.projectId;
     if (id) openProject(id);
-  });
-
-
-  root.querySelector('[data-signout]').addEventListener('click', async () => {
-    await app.managers.get('AuthManager').signOut();
   });
 
   const searchInput = root.querySelector('#global-search');
@@ -154,5 +148,12 @@ export function renderAppShell(root, app, config) {
     openProject,
     openTasks: routes.tasks
   });
-  app.shellCleanup = unmountNotifications;
+  const unmountAccountMenu = mountAccountMenu(root.querySelector('[data-account-menu]'), authUser, {
+    navigate: route => routes[route]?.(),
+    signOut: () => app.managers.get('AuthManager').signOut()
+  });
+  app.shellCleanup = () => {
+    unmountNotifications();
+    unmountAccountMenu();
+  };
 }

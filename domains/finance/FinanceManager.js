@@ -22,7 +22,8 @@ export function createFinanceManager(app) {
     return engine.monthly(
       state.payments.filter(x => !x.deletedAt && !x.archivedAt),
       state.expenses.filter(x => !x.deletedAt && !x.archivedAt),
-      month
+      month,
+      state.tasks.filter(x => !x.deletedAt && !x.archivedAt && !x.projectId)
     );
   }
 
@@ -31,10 +32,12 @@ export function createFinanceManager(app) {
     const projects = state.projects.filter(x => !x.deletedAt && !x.archivedAt);
     const payments = state.payments.filter(x => !x.deletedAt && !x.archivedAt);
     const deliveries = state.deliveries.filter(x => !x.deletedAt && !x.archivedAt);
+    const quickTasks = state.tasks.filter(x => !x.deletedAt && !x.archivedAt && !x.projectId);
     const monthly = engine.monthly(
       payments,
       state.expenses.filter(x => !x.deletedAt && !x.archivedAt),
-      month
+      month,
+      quickTasks
     );
 
     const totals = projects.reduce((summary, project) => {

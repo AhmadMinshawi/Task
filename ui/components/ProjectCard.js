@@ -41,7 +41,30 @@ export function createProjectCard(project, finance) {
   open.type = 'button';
   open.dataset.projectId = project.id;
   open.textContent = 'Open';
-  foot.append(remaining, open);
+  const actions = document.createElement('div');
+  actions.className = 'card-actions';
+  if (project.archivedAt) {
+    const restore = document.createElement('button');
+    restore.className = 'row-action';
+    restore.type = 'button';
+    restore.dataset.restoreProject = project.id;
+    restore.textContent = 'Restore';
+    actions.append(restore);
+  } else {
+    const archive = document.createElement('button');
+    archive.className = 'row-action';
+    archive.type = 'button';
+    archive.dataset.archiveProject = project.id;
+    archive.textContent = 'Archive';
+    actions.append(open, archive);
+  }
+  const remove = document.createElement('button');
+  remove.className = 'row-action danger-action';
+  remove.type = 'button';
+  remove.dataset.deleteProject = project.id;
+  remove.textContent = 'Delete';
+  actions.append(remove);
+  foot.append(remaining, actions);
 
   el.append(head, metrics, foot);
   return el;

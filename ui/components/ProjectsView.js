@@ -55,13 +55,17 @@ export function renderProjectsView(root, app) {
       return;
     }
 
-    if (event.target.closest('[data-add-project]')) openProjectForm(app);
-    const action = event.target.closest('[data-archive-project],[data-restore-project],[data-delete-project]');
+    if (event.target.closest('[data-add-project]')) {
+      openProjectForm(app);
+      return;
+    }
+    const action = event.target.closest('[data-edit-project],[data-archive-project],[data-restore-project],[data-delete-project]');
     if (!action) return;
     const project = app.state.get().projects.find(x => x.id === (action.dataset.archiveProject || action.dataset.restoreProject || action.dataset.deleteProject) && !x.deletedAt);
     if (!project) return;
     const service = app.managers.get('ProjectService');
-    if (action.matches('[data-archive-project]')) service.archive(project.id);
+    if (action.matches('[data-edit-project]')) openProjectForm(app, project);
+    else if (action.matches('[data-archive-project]')) service.archive(project.id);
     else if (action.matches('[data-restore-project]')) service.restore(project.id);
     else confirmProjectDelete(app, project, () => service.remove(project.id));
   };
@@ -82,13 +86,13 @@ function confirmProjectDelete(app, project, onConfirm) {
   app.modal.open(content);
 }
 
-function openProjectForm(app) {
+function openProjectForm(app, project = null) {
   const content = document.createElement('div');
   content.innerHTML = `
     <div class="modal-heading">
       <span class="eyebrow">New workspace</span>
-      <h2>Add project</h2>
-      <p>Set the project basics. Payments, deliveries and tasks can be added after creation.</p>
+      <h2>${project ? 'Edit project' : 'Add project'}</h2>
+      <p>${project ? 'Update the project client, pricing, quantity and deadline.' : 'Set the project basics. Payments, deliveries and tasks can be added after creation.'}</p>
     </div>
     <form class="modal-form" data-project-form novalidate>
       <label>Project name<input name="name" type="text" maxlength="120" autocomplete="off" required></label>
@@ -101,7 +105,7 @@ function openProjectForm(app) {
       <p class="form-error" aria-live="polite"></p>
       <div class="modal-actions">
         <button class="secondary-action" type="button" data-cancel>Cancel</button>
-        <button class="primary-action" type="submit">Create project</button>
+        <button class="primary-action" type="submit">${project ? 'Save changes' : 'Create project'}</button>
       </div>
     </form>
   `;
@@ -115,18 +119,27 @@ function openProjectForm(app) {
   }
 
   const form = content.querySelector('[data-project-form]');
+  if (project) {
+    form.elements.name.value = project.name || '';
+    form.elements.clientId.value = project.clientId || '';
+    form.elements.pricePerVideo.value = Number(project.pricePerVideo) || 0;
+    form.elements.totalVideos.value = Number(project.totalVideos) || 0;
+    form.elements.deadline.value = project.deadline ? String(project.deadline).slice(0, 10) : '';
+  }
   form.addEventListener('submit', event => {
     event.preventDefault();
     const error = form.querySelector('.form-error');
     error.textContent = '';
     try {
       const data = Object.fromEntries(new FormData(form).entries());
-      app.managers.get('ProjectService').create({
+      const payload = {
         ...data,
         clientId: data.clientId || null,
         pricePerVideo: Number(data.pricePerVideo),
         totalVideos: Number(data.totalVideos)
-      });
+      };
+      if (project) app.managers.get('ProjectService').update(project.id, payload);
+      else app.managers.get('ProjectService').create(payload);
       app.modal.close();
     } catch (err) {
       error.textContent = err.message || 'Could not create project.';

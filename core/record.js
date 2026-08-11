@@ -5,6 +5,7 @@ export function recordMeta(app) {
     ownerId,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    archivedAt: null,
     deletedAt: null
   };
 }

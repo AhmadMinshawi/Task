@@ -2,7 +2,7 @@ import { renderFinanceSummary } from './FinanceSummary.js';
 import { renderExpenseQuickAdd } from './ExpenseQuickAdd.js';
 
 export function renderFinanceView(root, app) {
-  let financeHidden = false;
+  let financeHidden = true;
   let mode = 'active';
   root.innerHTML = `
     <div class="page-heading">

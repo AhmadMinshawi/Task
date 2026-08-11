@@ -55,12 +55,11 @@ export function renderClientsView(root, app) {
       return;
     }
     const action = event.target.closest('[data-edit-client],[data-archive-client],[data-restore-client],[data-delete-client]');
-    if (!action) return;
-    const card = action.closest('[data-client-id]');
+    const card = (action || event.target).closest('[data-client-id]');
     const client = app.state.get().clients.find(x => x.id === card?.dataset.clientId && !x.deletedAt);
     if (!client) return;
     const service = app.managers.get('ClientService');
-    if (action.matches('[data-edit-client]')) openClientForm(app, client);
+    if (!action || action.matches('[data-edit-client]')) openClientForm(app, client);
     else if (action.matches('[data-archive-client]')) service.archive(client.id);
     else if (action.matches('[data-restore-client]')) service.restore(client.id);
     else confirmDelete(app, client.name, () => service.remove(client.id));

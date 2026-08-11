@@ -7,14 +7,6 @@ export function renderHomeDashboard(root, app) {
       <button class="expense-launch" type="button" data-add-expense aria-label="Add expense" title="Add expense"><span>＋</span></button>
     </div>
     <div class="overview-stats" data-overview-stats></div>
-    <section class="home-total-card" data-home-total>
-      <div class="home-total-heading"><div><span class="eyebrow">This month</span><h2>Financial total</h2></div><strong data-total-month></strong></div>
-      <div class="home-total-grid">
-        <div><span>Income</span><strong class="positive" data-total-income></strong></div>
-        <div><span>Expenses</span><strong class="negative" data-total-expenses></strong></div>
-        <div class="net"><span>Net total</span><strong data-total-net></strong></div>
-      </div>
-    </section>
     <div class="dashboard-grid">
       <section class="dashboard-card dashboard-projects">
         <div class="dashboard-card-head">
@@ -113,42 +105,36 @@ export function renderHomeDashboard(root, app) {
   }
 
   function renderOverview(state) {
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const portfolio = app.managers.get('FinanceManager').portfolioSummary(month);
+    const projects = state.projects.filter(project => !project.deletedAt && !project.archivedAt);
+    let completedProjects = 0;
+    let videosLeft = 0;
+    for (const project of projects) {
+      const summary = app.managers.get('FinanceManager').projectSummary(project.id);
+      const totalVideos = Number(project.totalVideos) || 0;
+      if (totalVideos > 0 && summary.deliveredVideos >= totalVideos) completedProjects += 1;
+      videosLeft += summary.remainingProjectVideos;
+    }
     const stats = [
-      ['Clients', state.clients.filter(x => !x.deletedAt && !x.archivedAt).length],
-      ['Projects', state.projects.filter(x => !x.deletedAt && !x.archivedAt).length],
-      ['Open tasks', state.tasks.filter(x => !x.deletedAt && !x.archivedAt && !['done', 'cancelled'].includes(x.status)).length],
-      ['Delivered videos', state.deliveries.filter(x => !x.deletedAt && !x.archivedAt).reduce((sum, x) => sum + Number(x.quantity || 0), 0)]
+      ['Monthly total', money(portfolio.collected), 'monthly'],
+      ['Due from clients', money(portfolio.outstanding), 'due'],
+      ['Completed projects', completedProjects, 'complete'],
+      ['Videos left to deliver', videosLeft, 'delivery']
     ];
     const container = root.querySelector('[data-overview-stats]');
-    container.replaceChildren(...stats.map(([label, value]) => {
+    container.replaceChildren(...stats.map(([label, value, kind]) => {
       const card = document.createElement('article');
+      card.className = `command-stat ${kind}`;
       card.append(textNode('span', '', label), textNode('strong', '', String(value)));
       return card;
     }));
   }
 
-  function renderFinancialTotal(state) {
-    const now = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const visible = item => !item.deletedAt && !item.archivedAt;
-    const total = app.managers.get('FinanceEngine').monthly(
-      state.payments.filter(visible),
-      state.expenses.filter(visible),
-      month,
-      state.tasks.filter(task => visible(task) && !task.projectId)
-    );
-    root.querySelector('[data-total-month]').textContent = new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(now);
-    root.querySelector('[data-total-income]').textContent = money(total.collected);
-    root.querySelector('[data-total-expenses]').textContent = money(total.expenses);
-    const net = root.querySelector('[data-total-net]');
-    net.textContent = money(total.netCollected);
-    net.className = total.netCollected < 0 ? 'negative' : 'positive';
-  }
-
   const refresh = () => {
     const state = app.state.get();
     renderOverview(state);
-    renderFinancialTotal(state);
     renderProjects(state);
     renderTasks(state);
   };

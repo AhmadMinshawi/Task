@@ -17,12 +17,25 @@ export function createExpenseService(app) {
         date: safeDate,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        archivedAt: null,
         deletedAt: null
       };
 
       app.repositories.expenses.insert(expense);
       app.events.emit('expense.created', expense);
       return expense;
+    },
+    archive(id) {
+      guard.assertManager('ExpenseService');
+      return app.repositories.expenses.update(id, { archivedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+    },
+    restore(id) {
+      guard.assertManager('ExpenseService');
+      return app.repositories.expenses.update(id, { archivedAt: null, updatedAt: new Date().toISOString() });
+    },
+    remove(id) {
+      guard.assertManager('ExpenseService');
+      return app.repositories.expenses.softDelete(id);
     }
   });
 }

@@ -1,8 +1,9 @@
 export function renderClientsView(root, app) {
+  let mode = 'active';
   root.innerHTML = `
     <div class="page-heading">
       <div><span class="eyebrow">People</span><h1>Clients</h1></div>
-      <button class="primary-action" type="button" data-add-client>Add client</button>
+      <div class="page-actions"><button class="secondary-action is-active" type="button" data-client-mode="active">Active</button><button class="secondary-action" type="button" data-client-mode="archive">Archive</button><button class="primary-action" type="button" data-add-client>Add client</button></div>
     </div>
     <div class="clients-grid" data-clients></div>
   `;
@@ -12,14 +13,18 @@ export function renderClientsView(root, app) {
     if (!container) return;
     container.replaceChildren();
 
-    for (const client of app.state.get().clients.filter(c => !c.deletedAt)) {
+    const clients = app.state.get().clients.filter(client => !client.deletedAt && (mode === 'archive' ? client.archivedAt : !client.archivedAt));
+    for (const client of clients) {
       const card = document.createElement('article');
       card.className = 'client-card';
       card.dataset.clientId = client.id;
       card.innerHTML = `
         <div class="client-card-head">
           <span class="eyebrow">Client</span>
-          <button class="client-edit" type="button" data-edit-client aria-label="Edit client">Edit</button>
+          <div class="card-actions">
+            ${mode === 'active' ? '<button class="client-edit" type="button" data-edit-client>Edit</button><button class="client-edit" type="button" data-archive-client>Archive</button>' : '<button class="client-edit" type="button" data-restore-client>Restore</button>'}
+            <button class="client-edit danger-action" type="button" data-delete-client>Delete</button>
+          </div>
         </div>
         <h3 data-client-name></h3>
         <span class="client-industry" data-client-industry></span>
@@ -37,15 +42,28 @@ export function renderClientsView(root, app) {
   };
 
   const handleClick = event => {
+    const modeButton = event.target.closest('[data-client-mode]');
+    if (modeButton) {
+      mode = modeButton.dataset.clientMode;
+      root.querySelectorAll('[data-client-mode]').forEach(button => button.classList.toggle('is-active', button === modeButton));
+      root.querySelector('[data-add-client]').hidden = mode === 'archive';
+      render();
+      return;
+    }
     if (event.target.closest('[data-add-client]')) {
       openClientForm(app);
       return;
     }
-    const edit = event.target.closest('[data-edit-client]');
-    if (!edit) return;
-    const card = edit.closest('[data-client-id]');
+    const action = event.target.closest('[data-edit-client],[data-archive-client],[data-restore-client],[data-delete-client]');
+    if (!action) return;
+    const card = action.closest('[data-client-id]');
     const client = app.state.get().clients.find(x => x.id === card?.dataset.clientId && !x.deletedAt);
-    if (client) openClientForm(app, client);
+    if (!client) return;
+    const service = app.managers.get('ClientService');
+    if (action.matches('[data-edit-client]')) openClientForm(app, client);
+    else if (action.matches('[data-archive-client]')) service.archive(client.id);
+    else if (action.matches('[data-restore-client]')) service.restore(client.id);
+    else confirmDelete(app, client.name, () => service.remove(client.id));
   };
   root.addEventListener('click', handleClick);
 
@@ -55,6 +73,15 @@ export function renderClientsView(root, app) {
     unsubscribe();
     root.removeEventListener('click', handleClick);
   };
+}
+
+function confirmDelete(app, name, onConfirm) {
+  const content = document.createElement('div');
+  content.innerHTML = `<div class="modal-heading"><span class="eyebrow">Delete client</span><h2>Delete this client?</h2><p>This removes <strong data-name></strong> from active and archived clients. Their projects are not deleted.</p></div><div class="modal-actions"><button class="secondary-action" type="button" data-cancel>Cancel</button><button class="primary-action danger-button" type="button" data-confirm>Delete</button></div>`;
+  content.querySelector('[data-name]').textContent = name;
+  content.querySelector('[data-cancel]').addEventListener('click', () => app.modal.close());
+  content.querySelector('[data-confirm]').addEventListener('click', () => { onConfirm(); app.modal.close(); });
+  app.modal.open(content);
 }
 
 function openClientForm(app, client = null) {

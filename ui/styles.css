@@ -97,3 +97,16 @@ nav button:hover{background:var(--surface-2);color:var(--text)}
 .auth-card button{width:100%;margin-top:16px;padding:11px;border:0;border-radius:9px;background:var(--accent);color:white}
 
 .topbar-actions{display:flex;align-items:center;gap:10px}.signout-button{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:9px;padding:9px 11px}.signout-button:hover{color:var(--text);background:var(--surface-2)}
+
+.dashboard-period{color:var(--muted);font-size:13px}
+.overview-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.overview-stats article,.dashboard-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.overview-stats article{padding:14px 16px}.overview-stats span,.health-grid span{display:block;color:var(--muted);font-size:11px}.overview-stats strong{display:block;margin-top:5px;font-size:22px}
+.dashboard-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:16px;margin-top:16px;align-items:start}
+.dashboard-card{padding:18px}.dashboard-card-head{display:flex;align-items:start;justify-content:space-between;gap:12px;margin-bottom:12px}.dashboard-card h2{font-size:17px;margin:4px 0 0}.dashboard-count{font-size:11px;color:var(--muted);background:var(--surface-2);padding:5px 8px;border-radius:999px}
+.dashboard-list{display:grid;gap:8px}.dashboard-project-row{display:grid;grid-template-columns:minmax(150px,1fr) minmax(80px,160px) auto;align-items:center;gap:12px;padding:11px;background:var(--surface-2);border-radius:10px}.dashboard-project-row strong,.dashboard-project-row small,.dashboard-task-row strong,.dashboard-task-row small{display:block}.dashboard-project-row small,.dashboard-task-row small{color:var(--muted);font-size:11px;margin-top:3px}
+.progress-track{height:6px;border-radius:99px;background:var(--border);overflow:hidden}.progress-track span{display:block;height:100%;background:var(--accent-2);border-radius:inherit}
+.dashboard-task-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border)}.dashboard-task-row:last-child{border-bottom:0}.task-check{width:29px;height:29px;border-radius:50%;border:1px solid var(--border);background:var(--surface-2);color:var(--muted)}.task-check:hover{background:var(--accent);border-color:var(--accent);color:white}
+.dashboard-expense .quick-add{box-shadow:var(--shadow)}.dashboard-health{min-height:100%}.health-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.health-grid div{background:var(--surface-2);border-radius:10px;padding:12px}.health-grid strong{display:block;margin-top:5px;font-size:16px}.dashboard-empty{color:var(--muted);font-size:12px;padding:18px 8px;margin:0;text-align:center}
+@media(max-width:960px){.overview-stats{grid-template-columns:1fr 1fr}.dashboard-grid{grid-template-columns:1fr}}
+@media(max-width:620px){.overview-stats{grid-template-columns:1fr 1fr}.dashboard-project-row{grid-template-columns:1fr auto}.dashboard-project-row .progress-track{grid-column:1/-1;grid-row:2}.dashboard-period{display:none}.topbar{padding:0 14px}.topbar>div:first-child{display:none}.topbar-actions{width:100%}.search{flex:1}.search input{width:100%}}

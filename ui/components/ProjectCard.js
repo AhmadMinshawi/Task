@@ -51,12 +51,17 @@ export function createProjectCard(project, finance) {
     restore.textContent = 'Restore';
     actions.append(restore);
   } else {
+    const edit = document.createElement('button');
+    edit.className = 'row-action';
+    edit.type = 'button';
+    edit.dataset.editProject = project.id;
+    edit.textContent = 'Edit';
     const archive = document.createElement('button');
     archive.className = 'row-action';
     archive.type = 'button';
     archive.dataset.archiveProject = project.id;
     archive.textContent = 'Archive';
-    actions.append(open, archive);
+    actions.append(open, edit, archive);
   }
   const remove = document.createElement('button');
   remove.className = 'row-action danger-action';

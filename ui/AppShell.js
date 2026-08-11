@@ -5,6 +5,7 @@ import { renderProjectWorkspace } from './components/ProjectWorkspace.js';
 import { renderClientsView } from './components/ClientsView.js';
 import { renderTasksView } from './components/TasksView.js';
 import { renderSearchResults } from './components/SearchResults.js';
+import { createModalController } from './components/Modal.js';
 
 export function renderAppShell(root, app, config) {
   const ui = createUIManager(app);
@@ -41,6 +42,7 @@ export function renderAppShell(root, app, config) {
   `;
 
   const view = root.querySelector('#view');
+  app.modal = createModalController(root.querySelector('#modal-root'));
 
   function mount(name, render) {
     ui.destroyAll();
@@ -61,6 +63,10 @@ export function renderAppShell(root, app, config) {
   }
 
   view.addEventListener('click', event => {
+    if (event.target.closest('[data-back]')) {
+      routes.projects();
+      return;
+    }
     const button = event.target.closest('.open-project');
     if (!button) return;
     const id = button.dataset.projectId || button.closest('.project-card')?.dataset.projectId;

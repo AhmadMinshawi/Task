@@ -1,3 +1,5 @@
+import { isActiveRecord } from '../../core/recordState.js';
+
 export function renderCalendarView(root, app) {
   let cursor = new Date();
   cursor = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
@@ -46,6 +48,8 @@ function renderMonth(container, state, month) {
       badge.className = `calendar-event ${event.type}`;
       badge.textContent = event.title;
       badge.title = `${event.type}: ${event.title}`;
+      badge.dataset.openProject = '';
+      badge.dataset.projectId = event.projectId;
       cell.append(badge);
     }
     container.append(cell);
@@ -54,8 +58,15 @@ function renderMonth(container, state, month) {
 
 function calendarEvents(state) {
   return [
-    ...state.projects.filter(x => !x.deletedAt && !x.archivedAt && x.deadline).map(project => ({ type: 'project', title: project.name, date: String(project.deadline).slice(0, 10) })),
-    ...state.tasks.filter(x => !x.deletedAt && !x.archivedAt && x.dueDate).map(task => ({ type: 'task', title: task.title, date: String(task.dueDate).slice(0, 10) }))
+    ...state.projects.filter(project => isActiveRecord(project) && project.deadline).map(project => ({ type: 'project', projectId: project.id, title: `${project.name} — deadline`, date: String(project.deadline).slice(0, 10) })),
+    ...state.projects.filter(isActiveRecord).flatMap(project =>
+      (Array.isArray(project.notes) ? project.notes : []).filter(note => note.date).map(note => ({
+        type: 'note',
+        projectId: project.id,
+        title: `${project.name}: ${note.text}`,
+        date: String(note.date).slice(0, 10)
+      }))
+    )
   ];
 }
 

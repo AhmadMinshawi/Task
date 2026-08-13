@@ -1,6 +1,8 @@
 import { createProjectCard } from './ProjectCard.js';
 import { openProjectForm } from './forms/ProjectForm.js';
 import { sortRecords } from '../utils/sortRecords.js';
+import { projectIntegrityIssues } from '../../domains/projects/ProjectIntegrity.js';
+import { activeRecords, activeProjectRecords } from '../../core/recordState.js';
 
 export function renderProjectsView(root, app) {
   let sortMode = 'newest';
@@ -20,7 +22,7 @@ export function renderProjectsView(root, app) {
     container.replaceChildren();
 
     const projects = sortRecords(
-      state.projects.filter(project => !project.deletedAt && !project.archivedAt),
+      activeRecords(state.projects),
       sortMode,
       { pinned: true }
     );
@@ -34,9 +36,9 @@ export function renderProjectsView(root, app) {
     }
 
     for (const project of projects) {
-      const payments = state.payments.filter(x => x.projectId === project.id && !x.deletedAt);
-      const deliveries = state.deliveries.filter(x => x.projectId === project.id && !x.deletedAt);
-      container.append(createProjectCard(project, finance.project(project, payments, deliveries)));
+      const payments = activeProjectRecords(state.payments, project.id);
+      const deliveries = activeProjectRecords(state.deliveries, project.id);
+      container.append(createProjectCard(project, finance.project(project, payments, deliveries), projectIntegrityIssues(state, project)));
     }
   };
 
@@ -82,7 +84,7 @@ export function renderProjectsView(root, app) {
 
 function confirmProjectDelete(app, project, onConfirm) {
   const content = document.createElement('div');
-  content.innerHTML = `<div class="modal-heading"><span class="eyebrow">Delete project</span><h2>Delete this project?</h2><p><strong data-name></strong> will be removed. Its finance records and tasks remain stored until you manage them separately.</p></div><div class="modal-actions"><button class="secondary-action" type="button" data-cancel>Cancel</button><button class="primary-action danger-button" type="button" data-confirm>Delete</button></div>`;
+  content.innerHTML = `<div class="modal-heading"><span class="eyebrow">Delete project</span><h2>Delete this project?</h2><p><strong data-name></strong> will be removed. Its finance records remain stored until you manage them separately.</p></div><div class="modal-actions"><button class="secondary-action" type="button" data-cancel>Cancel</button><button class="primary-action danger-button" type="button" data-confirm>Delete</button></div>`;
   content.querySelector('[data-name]').textContent = project.name;
   content.querySelector('[data-cancel]').addEventListener('click', () => app.modal.close());
   content.querySelector('[data-confirm]').addEventListener('click', () => { onConfirm(); app.modal.close(); });

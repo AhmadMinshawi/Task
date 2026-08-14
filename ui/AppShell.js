@@ -3,8 +3,6 @@ import { renderHomeDashboard } from './components/HomeDashboard.js';
 import { renderProjectsView } from './components/ProjectsView.js';
 import { renderProjectWorkspace } from './components/ProjectWorkspace.js';
 import { renderClientsView } from './components/ClientsView.js';
-import { renderTasksView } from './components/TasksView.js';
-import { renderSearchResults } from './components/SearchResults.js';
 import { createModalController } from './components/Modal.js';
 import { renderFinanceView } from './components/FinanceView.js';
 import { renderCalendarView } from './components/CalendarView.js';
@@ -12,6 +10,8 @@ import { renderSettingsView } from './components/SettingsView.js';
 import { mountNotificationCenter } from './components/NotificationCenter.js';
 import { renderProfileView } from './components/ProfileView.js';
 import { mountAccountMenu } from './components/AccountMenu.js';
+import { mountGlobalSearch } from './components/GlobalSearch.js';
+import { mountPersistenceStatus } from './components/PersistenceStatus.js';
 
 export function renderAppShell(root, app, config) {
   app.shellCleanup?.();
@@ -28,17 +28,16 @@ export function renderAppShell(root, app, config) {
       <nav>
         <button data-view="projects" aria-label="Projects" title="Projects"><span class="nav-icon">▣</span><span class="nav-label">Projects</span></button>
         <button data-view="clients" aria-label="Clients" title="Clients"><span class="nav-icon">♙</span><span class="nav-label">Clients</span></button>
-        <button data-view="tasks" aria-label="Tasks" title="Tasks"><span class="nav-icon">✓</span><span class="nav-label">Tasks</span></button>
         <button data-view="finance" aria-label="Finance" title="Finance"><span class="nav-icon">$</span><span class="nav-label">Finance</span></button>
         <button data-view="calendar" aria-label="Calendar" title="Calendar"><span class="nav-icon">□</span><span class="nav-label">Calendar</span></button>
       </nav>
     </aside>
     <main class="main">
       <header class="topbar">
-        <div><strong>Command Center</strong><small class="connection-status">Supabase · Secure</small></div>
+        <div><strong>Command Center</strong><button class="connection-status" type="button" data-persistence-status hidden></button></div>
         <div class="topbar-actions">
           <div class="search">
-            <input id="global-search" autocomplete="off" placeholder="Search by first letter…">
+            <input id="global-search" autocomplete="off" placeholder="ابحث بالاسم أو البريد أو الموبايل">
             <div class="search-results" id="search-results" hidden></div>
           </div>
           <button class="header-home" type="button" data-view="home" aria-label="Home"><span>⌂</span><strong>Home</strong></button>
@@ -62,12 +61,17 @@ export function renderAppShell(root, app, config) {
 
   let activeRoute = 'home';
   let workspaceReturnRoute = 'projects';
+  let selectedClientId = null;
+  let openClientFromSearch = false;
 
   const routes = {
     home: () => navigateTo('home', 'HomeView', renderHomeDashboard),
     projects: () => navigateTo('projects', 'ProjectsView', renderProjectsView),
-    clients: () => navigateTo('clients', 'ClientsView', renderClientsView),
-    tasks: () => navigateTo('tasks', 'TasksView', renderTasksView),
+    clients: () => navigateTo('clients', 'ClientsView', (r, a) => {
+      const options = { selectedClientId, openSelectedClient: openClientFromSearch };
+      openClientFromSearch = false;
+      return renderClientsView(r, a, options);
+    }),
     finance: () => navigateTo('finance', 'FinanceView', renderFinanceView),
     calendar: () => navigateTo('calendar', 'CalendarView', renderCalendarView),
     settings: () => navigateTo('settings', 'SettingsView', renderSettingsView),
@@ -108,7 +112,7 @@ export function renderAppShell(root, app, config) {
       return;
     }
     if (event.target.closest('[data-open-task]')) {
-      routes.tasks();
+      routes.projects();
       return;
     }
     const projectTarget = event.target.closest('.open-project, [data-open-project]');
@@ -122,38 +126,33 @@ export function renderAppShell(root, app, config) {
     const id = projectCard?.dataset.projectId;
     if (id) openProject(id);
   });
+  view.addEventListener('taskv:open-project', event => openProject(event.detail.id));
 
-  const searchInput = root.querySelector('#global-search');
-  const searchResults = root.querySelector('#search-results');
-
-  searchInput.addEventListener('input', event => {
-    const results = app.managers.get('SearchManager').search(event.target.value);
-    renderSearchResults(searchResults, results, result => {
-      searchInput.value = result.item.name ?? result.item.title ?? '';
-      searchResults.hidden = true;
-
-      if (result.type === 'projects') {
-        openProject(result.item.id);
-      } else if (result.type === 'clients') {
-        routes.clients();
-      } else if (result.type === 'tasks') {
-        routes.tasks();
-      }
-    });
-    searchResults.hidden = !event.target.value.trim();
+  const unmountSearch = mountGlobalSearch(root.querySelector('.search'), app, {
+    openClient: clientId => {
+      selectedClientId = clientId;
+      openClientFromSearch = true;
+      routes.clients();
+    }
   });
+  const unmountPersistenceStatus = mountPersistenceStatus(root.querySelector('[data-persistence-status]'), app);
 
   navigateTo('home', 'HomeView', renderHomeDashboard);
   const unmountNotifications = mountNotificationCenter(root.querySelector('[data-notification-center]'), app, {
     openProject,
-    openTasks: routes.tasks
+    openTasks: routes.projects
   });
   const unmountAccountMenu = mountAccountMenu(root.querySelector('[data-account-menu]'), authUser, {
     navigate: route => routes[route]?.(),
-    signOut: () => app.managers.get('AuthManager').signOut()
+    signOut: () => app.managers.get('AuthManager').signOut(),
+    subscribeUser: listener => app.events.on('auth.changed', listener)
   });
   app.shellCleanup = () => {
+    ui.destroyAll();
+    app.modal.close();
     unmountNotifications();
     unmountAccountMenu();
+    unmountSearch();
+    unmountPersistenceStatus();
   };
 }

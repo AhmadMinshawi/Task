@@ -1,36 +1,43 @@
+import { activeRecords, isActiveRecord } from '../core/recordState.js';
+
 export function createSearchManager(app) {
-  const fields = Object.freeze({
-    projects: ['name'],
-    clients: ['name', 'email', 'phone'],
-    tasks: ['title'],
-    payments: ['title'],
-    deliveries: ['title']
-  });
+  const LIMIT = 6;
+  const text = value => String(value ?? '').trim().toLocaleLowerCase();
+  const phone = value => text(value).replace(/[^\d+]/g, '');
 
   function search(input) {
-    const q = String(input ?? '').trim().toLocaleLowerCase();
+    const q = text(input);
     if (!q) return [];
-
-    const state = app.state.get();
-    const results = [];
-
-    for (const [type, keys] of Object.entries(fields)) {
-      for (const item of state[type] ?? []) {
-        if (item.deletedAt || item.archivedAt) continue;
-
-        const values = keys.map(key => String(item[key] ?? '').toLocaleLowerCase());
-        const prefix = values.some(value => value.startsWith(q));
-        const contains = !prefix && values.some(value => value.includes(q));
-
-        if (prefix) results.push({ type, match: 'prefix', item });
-        else if (contains) results.push({ type, match: 'contains', item });
-      }
-    }
-
-    return results.sort((a, b) =>
+    const phoneQuery = phone(input);
+    return activeRecords(app.state.get().clients ?? []).map(item => {
+      const values = [text(item.name), text(item.email), text(item.phone)];
+      const phoneValue = phone(item.phone);
+      const prefix = values.some(value => value.startsWith(q)) || (phoneQuery && phoneValue.startsWith(phoneQuery));
+      const contains = !prefix && (values.some(value => value.includes(q)) || (phoneQuery && phoneValue.includes(phoneQuery)));
+      return prefix ? { type: 'clients', match: 'prefix', item } : contains ? { type: 'clients', match: 'contains', item } : null;
+    }).filter(Boolean).sort((a, b) =>
       Number(a.match !== 'prefix') - Number(b.match !== 'prefix')
     );
   }
 
-  return Object.freeze({ search });
+  function recentClients() {
+    const state = app.state.get();
+    const clients = new Map((state.clients ?? []).map(client => [client.id, client]));
+    return (state.recentClientSearches ?? []).map(id => clients.get(id)).filter(isActiveRecord).slice(0, LIMIT);
+  }
+
+  function recordClient(clientId) {
+    const client = (app.state.get().clients ?? []).find(item => item.id === clientId && isActiveRecord(item));
+    if (!client) return false;
+    app.state.update(state => {
+      state.recentClientSearches = [clientId, ...(state.recentClientSearches ?? []).filter(id => id !== clientId)].slice(0, LIMIT);
+    });
+    return true;
+  }
+
+  function clearRecentClients() {
+    app.state.update(state => { state.recentClientSearches = []; });
+  }
+
+  return Object.freeze({ search, recentClients, recordClient, clearRecentClients });
 }

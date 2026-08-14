@@ -1,20 +1,23 @@
 import { renderFinanceSummary } from './FinanceSummary.js';
 import { renderExpenseQuickAdd } from './ExpenseQuickAdd.js';
+import { renderFinanceReports } from './FinanceReports.js';
+import { activeProjectIds } from '../../domains/projects/ProjectRelations.js';
 
 export function renderFinanceView(root, app) {
   let financeHidden = true;
-  let mode = 'active';
+  let transactionsRoot = null;
   root.innerHTML = `
     <div class="page-heading">
       <div><span class="eyebrow">Money</span><h1>Finance</h1></div>
       <span class="dashboard-period" data-period></span>
     </div>
     <div data-finance-summary></div>
+    <div data-finance-reports></div>
     <div class="finance-layout">
-      <section class="dashboard-card finance-ledger">
-        <div class="dashboard-card-head"><div><span class="eyebrow">Cash flow</span><h2>Recent transactions</h2></div></div>
-        <div class="ledger-list" data-ledger></div>
-      </section>
+      <button class="dashboard-card finance-history-launch" type="button" data-open-transactions>
+        <span><span class="eyebrow">Cash flow</span><strong>Recent transactions</strong><small>View payments, deliveries and expenses in one simple window.</small></span>
+        <span class="secondary-action">View transactions</span>
+      </button>
       <div data-expense-add></div>
     </div>
   `;
@@ -33,7 +36,22 @@ export function renderFinanceView(root, app) {
         refresh();
       }
     });
-    renderLedger(root.querySelector('[data-ledger]'), state, financeHidden, mode);
+    renderFinanceReports(root.querySelector('[data-finance-reports]'), {
+      months: app.managers.get('FinanceManager').monthlyTrend(6, month),
+      clients: app.managers.get('FinanceManager').clientReports(),
+      projects: app.managers.get('FinanceManager').projectReports()
+    }, { hidden: financeHidden, onOpenProject: id => root.dispatchEvent(new CustomEvent('taskv:open-project', { bubbles: true, detail: { id } })) });
+    if (transactionsRoot?.isConnected) renderLedger(transactionsRoot, state, financeHidden);
+    else transactionsRoot = null;
+  };
+
+  const openTransactions = () => {
+    const content = document.createElement('div');
+    content.className = 'finance-transactions-modal';
+    content.innerHTML = '<div class="modal-heading"><span class="eyebrow">Cash flow</span><h2>Recent transactions</h2><p>Read-only history. Manage a payment or delivery from its project.</p></div><div class="ledger-list" data-transactions-list></div>';
+    transactionsRoot = content.querySelector('[data-transactions-list]');
+    renderLedger(transactionsRoot, app.state.get(), financeHidden);
+    app.modal.open(content, () => { transactionsRoot = null; });
   };
 
   renderExpenseQuickAdd(root.querySelector('[data-expense-add]'), data => {
@@ -41,35 +59,22 @@ export function renderFinanceView(root, app) {
   });
   refresh();
   const handleClick = event => {
-    const modeButton = event.target.closest('[data-finance-mode]');
-    if (modeButton) {
-      mode = modeButton.dataset.financeMode;
-      root.querySelectorAll('[data-finance-mode]').forEach(button => button.classList.toggle('is-active', button === modeButton));
-      root.querySelector('[data-expense-add]').hidden = mode === 'archive';
-      refresh();
-      return;
-    }
-    const action = event.target.closest('[data-archive-record],[data-restore-record],[data-delete-record]');
-    if (!action) return;
-    const kind = action.dataset.kind;
-    const id = action.dataset.archiveRecord || action.dataset.restoreRecord || action.dataset.deleteRecord;
-    const service = kind === 'expense' ? app.managers.get('ExpenseService') : app.managers.get('FinanceService');
-    if (action.matches('[data-archive-record]')) kind === 'expense' ? service.archive(id) : service.archive(kind, id);
-    else if (action.matches('[data-restore-record]')) kind === 'expense' ? service.restore(id) : service.restore(kind, id);
-    else confirmFinanceDelete(app, kind, () => kind === 'expense' ? service.remove(id) : service.remove(kind, id));
+    if (event.target.closest('[data-open-transactions]')) openTransactions();
   };
   root.addEventListener('click', handleClick);
   const unsubscribe = app.state.subscribe(refresh);
   return () => { unsubscribe(); root.removeEventListener('click', handleClick); };
 }
 
-function renderLedger(container, state, hidden, mode) {
-  const visible = item => !item.deletedAt && (mode === 'archive' ? item.archivedAt : !item.archivedAt);
+function renderLedger(container, state, hidden) {
+  const visible = item => !item.deletedAt && !item.archivedAt;
+  const visibleProjects = activeProjectIds(state);
+  const visibleFinance = item => visible(item) && visibleProjects.has(item.projectId);
   const projectName = id => state.projects.find(project => project.id === id)?.name || 'Workspace';
   const records = [
-    ...state.payments.filter(visible).map(item => ({ ...item, kind: 'payment', label: 'Payment', value: item.amount, tone: 'positive', project: projectName(item.projectId) })),
+    ...state.payments.filter(visibleFinance).map(item => ({ ...item, kind: 'payment', label: 'Payment', value: item.amount, tone: 'positive', project: projectName(item.projectId) })),
     ...state.expenses.filter(visible).map(item => ({ ...item, kind: 'expense', label: 'Expense', value: -Number(item.amount), tone: 'negative', project: item.title || 'Expense' })),
-    ...state.deliveries.filter(visible).map(item => ({ ...item, kind: 'delivery', label: 'Delivery', value: item.quantity, tone: 'neutral', project: projectName(item.projectId) }))
+    ...state.deliveries.filter(visibleFinance).map(item => ({ ...item, kind: 'delivery', label: 'Delivery', value: item.quantity, tone: 'neutral', project: projectName(item.projectId) }))
   ].sort((a, b) => recordDate(b).localeCompare(recordDate(a))).slice(0, 20);
 
   container.replaceChildren();
@@ -83,7 +88,7 @@ function renderLedger(container, state, hidden, mode) {
 
   for (const record of records) {
     const row = document.createElement('article');
-    row.className = 'ledger-row';
+    row.className = 'ledger-row is-read-only';
     const badge = document.createElement('span');
     badge.className = `ledger-badge ${record.tone}`;
     badge.textContent = record.label.slice(0, 1);
@@ -96,32 +101,9 @@ function renderLedger(container, state, hidden, mode) {
     const amount = document.createElement('strong');
     amount.className = `ledger-value ${record.tone}`;
     amount.textContent = hidden ? '•••••' : record.kind === 'delivery' ? `${record.value} videos` : money(record.value);
-    const actions = document.createElement('div');
-    actions.className = 'ledger-actions';
-    const primary = document.createElement('button');
-    primary.type = 'button';
-    primary.className = 'row-action';
-    primary.dataset.kind = record.kind;
-    if (mode === 'archive') { primary.dataset.restoreRecord = record.id; primary.textContent = 'Restore'; }
-    else { primary.dataset.archiveRecord = record.id; primary.textContent = 'Archive'; }
-    const remove = document.createElement('button');
-    remove.type = 'button';
-    remove.className = 'row-action danger-action';
-    remove.dataset.kind = record.kind;
-    remove.dataset.deleteRecord = record.id;
-    remove.textContent = 'Delete';
-    actions.append(primary, remove);
-    row.append(badge, copy, amount, actions);
+    row.append(badge, copy, amount);
     container.append(row);
   }
-}
-
-function confirmFinanceDelete(app, kind, onConfirm) {
-  const content = document.createElement('div');
-  content.innerHTML = `<div class="modal-heading"><span class="eyebrow">Delete record</span><h2>Delete this ${kind}?</h2><p>The record will be removed from both the active ledger and its archive.</p></div><div class="modal-actions"><button class="secondary-action" type="button" data-cancel>Cancel</button><button class="primary-action danger-button" type="button" data-confirm>Delete</button></div>`;
-  content.querySelector('[data-cancel]').addEventListener('click', () => app.modal.close());
-  content.querySelector('[data-confirm]').addEventListener('click', () => { onConfirm(); app.modal.close(); });
-  app.modal.open(content);
 }
 
 function recordDate(item) {

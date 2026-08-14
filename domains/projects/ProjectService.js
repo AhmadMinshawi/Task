@@ -1,10 +1,13 @@
 import { recordMeta, normalizeMoney, normalizeQuantity, normalizeOptionalDate } from '../../core/record.js';
 import { normalizeOptionalUrl } from '../../core/url.js';
 import { normalizeProjectStatus } from './ProjectStatus.js';
+import { normalizeProjectNotes } from './ProjectNoteService.js';
+import { purgeProjectGraph } from './ProjectRelations.js';
+import { assertProjectChangeAllowed } from './ProjectIntegrity.js';
 
 export function createProjectService(app) {
   const guard = app.managers.get('MutationGuard');
-  function create({ name, clientId = null, pricePerVideo = 0, totalVideos = 0, pinned = false, deadline = '', status = 'new', projectLink = '' }) {
+  function create({ name, clientId = null, projectType = 'quick', pricePerVideo = 0, totalVideos = 0, pinned = false, deadline = '', status = 'new', projectLink = '', notes = [] }) {
     guard.assertManager('ProjectService');
     if (!String(name ?? '').trim()) throw new Error('Project name is required');
     const meta = recordMeta(app);
@@ -14,17 +17,21 @@ export function createProjectService(app) {
       if (!client) throw new Error('Client not found');
     }
 
+    const normalizedStatus = normalizeProjectStatus(status);
+    if (normalizedStatus === 'completed') throw new Error('Create the project first and record all deliveries before completing it');
     const record = {
       id: crypto.randomUUID(),
       ...meta,
       clientId,
       name: String(name).trim(),
+      projectType: normalizeProjectType(projectType),
       pricePerVideo: normalizeMoney(pricePerVideo, 'pricePerVideo'),
       totalVideos: normalizeQuantity(totalVideos, 'totalVideos'),
       pinned: Boolean(pinned),
       deadline: normalizeOptionalDate(deadline),
       projectLink: normalizeOptionalUrl(projectLink, 'project link'),
-      status: normalizeProjectStatus(status)
+      status: normalizedStatus,
+      notes: normalizeProjectNotes(notes)
     };
 
     app.repositories.projects.insert(record);
@@ -48,11 +55,17 @@ export function createProjectService(app) {
     }
     if (patch.pricePerVideo !== undefined) safe.pricePerVideo = normalizeMoney(patch.pricePerVideo, 'pricePerVideo');
     if (patch.totalVideos !== undefined) safe.totalVideos = normalizeQuantity(patch.totalVideos, 'totalVideos');
+    if (patch.projectType !== undefined) safe.projectType = normalizeProjectType(patch.projectType);
+    if (patch.notes !== undefined) safe.notes = normalizeProjectNotes(patch.notes);
     if (patch.pinned !== undefined) safe.pinned = Boolean(patch.pinned);
     if (patch.deadline !== undefined) safe.deadline = normalizeOptionalDate(patch.deadline);
     if (patch.projectLink !== undefined) safe.projectLink = normalizeOptionalUrl(patch.projectLink, 'project link');
     if (patch.status !== undefined) safe.status = normalizeProjectStatus(patch.status);
     safe.updatedAt = new Date().toISOString();
+
+    const current = app.repositories.projects.findById(id);
+    if (!current) throw new Error('Project not found');
+    assertProjectChangeAllowed(app.state.get(), current, safe);
 
     const result = app.repositories.projects.update(id, safe);
     app.events.emit('project.updated', result);
@@ -84,7 +97,7 @@ export function createProjectService(app) {
   function emptyTrash() {
     guard.assertManager('ProjectService');
     const deleted = app.repositories.projects.all({ includeDeleted: true }).filter(project => project.deletedAt);
-    for (const project of deleted) app.repositories.projects.hardDelete(project.id);
+    for (const project of deleted) purgeProjectGraph(app, project.id);
     return deleted.length;
   }
 
@@ -92,8 +105,13 @@ export function createProjectService(app) {
     guard.assertManager('ProjectService');
     const project = app.repositories.projects.findById(id, { includeDeleted: true });
     if (!project?.deletedAt) throw new Error('Deleted project not found');
-    return app.repositories.projects.hardDelete(id);
+    return purgeProjectGraph(app, id);
   }
 
   return Object.freeze({ create, update, archive, restore, remove, restoreDeleted, emptyTrash, purgeDeleted });
+}
+
+function normalizeProjectType(value) {
+  if (!['quick', 'large'].includes(value)) throw new Error('Invalid project type');
+  return value;
 }

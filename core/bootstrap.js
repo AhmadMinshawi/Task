@@ -9,6 +9,7 @@ import { createFinanceEngine } from '../domains/finance/FinanceEngine.js';
 import { createExpenseService } from '../domains/expenses/ExpenseService.js';
 import { createFinanceService } from '../domains/finance/FinanceService.js';
 import { createProjectService } from '../domains/projects/ProjectService.js';
+import { createProjectNoteService } from '../domains/projects/ProjectNoteService.js';
 import { createClientService } from '../domains/clients/ClientService.js';
 import { createTaskService } from '../domains/tasks/TaskService.js';
 import { renderAppShell } from '../ui/AppShell.js';
@@ -30,6 +31,7 @@ app.managers.register('FinanceManager', createFinanceManager(app));
 app.managers.register('ExpenseService', createExpenseService(app));
 app.managers.register('FinanceService', createFinanceService(app));
 app.managers.register('ProjectService', createProjectService(app));
+app.managers.register('ProjectNoteService', createProjectNoteService(app));
 app.managers.register('ClientService', createClientService(app));
 app.managers.register('TaskService', createTaskService(app));
 app.managers.register('SearchManager', createSearchManager(app));
@@ -64,9 +66,9 @@ supabase.auth.onAuthStateChange((_event, session) => {
     if (user) await launchAuthenticatedApp();
     else {
       launchedUserId = null;
+      app.shellCleanup?.();
+      app.shellCleanup = null;
       renderAuthView(root, auth, launchAuthenticatedApp);
     }
   }).catch(error => console.error('[TaskV auth]', error));
 });
-
-window.TaskV = Object.freeze({ config: APP_CONFIG, ...app });

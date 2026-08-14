@@ -7,6 +7,8 @@ export function createPersistenceManager(app, repository) {
   const unsubs = [];
 
   async function load(userId) {
+    loaded = false;
+    lastError = null;
     const state = await repository.load(userId);
     app.state.replace(state);
     loadedUserId = userId;
@@ -20,6 +22,7 @@ export function createPersistenceManager(app, repository) {
     if (saving) { pending = true; return false; }
 
     saving = true;
+    app.events.emit('persistence.saving', { revision: repository.currentRevision() });
     try {
       await repository.save(app.state.snapshot());
       lastError = null;

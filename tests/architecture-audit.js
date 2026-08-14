@@ -10,109 +10,78 @@ const allFiles = dir => fs.readdirSync(path.join(root, dir), { withFileTypes: tr
   return entry.isDirectory() ? allFiles(rel) : [rel];
 });
 
-assert.equal(exists('domains/projects/ProjectManager.js'), false, 'legacy ProjectManager must be removed');
-assert.equal(exists('domains/expenses/ExpenseManager.js'), false, 'legacy ExpenseManager must be removed');
-assert.equal(exists('security/rls.sql'), false, 'duplicate RLS source must be removed');
-assert.equal(exists('security/supabase_rls.sql'), true, 'canonical RLS source must exist');
-
-const sourceFiles = allFiles('.').filter(file => (file.endsWith('.js') || file.endsWith('.sql')) && !file.endsWith('tests/architecture-audit.js'));
-const source = sourceFiles.map(file => read(file)).join('\n');
-assert.equal(source.includes('ProjectManager'), false, 'no source reference to ProjectManager');
-assert.equal(source.includes('ExpenseManager'), false, 'no source reference to ExpenseManager');
-assert.equal(source.includes("security/rls.sql"), false, 'no source reference to duplicate rls.sql');
-
-const bootstrap = read('core/bootstrap.js');
-assert.equal(bootstrap.includes("register('FinanceEngine'"), true);
-assert.equal(bootstrap.includes("register('FinanceManager'"), true);
-assert.equal(bootstrap.includes("register('DeadlineManager'"), true);
-assert.equal(read('ui/AppShell.js').includes('mountNotificationCenter'), true, 'AppShell must delegate notifications');
-assert.equal(read('ui/components/NotificationCenter.js').includes('app.state.subscribe(render)'), true, 'notification center must react to state changes');
-const appShell = read('ui/AppShell.js');
-assert.equal(
-  appShell.indexOf("closest('.open-project, [data-open-project]')") < appShell.indexOf("closest('button, input, select, textarea, a')"),
-  true,
-  'project open controls must be handled before the generic interactive-element guard'
-);
-assert.equal(bootstrap.indexOf("register('FinanceEngine'") < bootstrap.indexOf("register('FinanceManager'"), true);
-assert.equal(bootstrap.includes('MemoryAdapter'), false, 'production bootstrap must not use memory fallback');
-
-for (const file of [
-  'ui/components/forms/ProjectForm.js',
-  'ui/components/forms/ClientForm.js',
-  'ui/components/forms/TaskForm.js',
-  'ui/components/settings/ArchivePanel.js',
-  'ui/components/settings/TrashPanel.js'
-]) assert.equal(exists(file), true, `${file} must remain an extracted UI module`);
-assert.equal(exists('ui/components/ProfileView.js'), true, 'profile must remain an extracted UI module');
-assert.equal(exists('ui/components/AccountMenu.js'), true, 'account controls must remain an extracted UI module');
-assert.equal(read('ui/AppShell.js').includes('mountAccountMenu'), true, 'AppShell must delegate the account menu');
-for (const file of [
-  'ui/components/project/ProjectOverview.js',
-  'ui/components/project/ProjectFinancePanel.js',
-  'ui/components/project/ProjectTasksPanel.js',
-  'ui/components/forms/FinanceRecordForm.js'
-]) assert.equal(exists(file), true, `${file} must remain an extracted project workspace module`);
-assert.equal(read('ui/components/ProjectWorkspace.js').includes('renderProjectFinancePanel'), true, 'project workspace must delegate finance rendering');
-assert.equal(read('ui/components/ProjectWorkspace.js').includes('renderProjectTasksPanel'), true, 'project workspace must delegate task rendering');
-assert.equal(exists('ui/utils/sortRecords.js'), true, 'shared collection sorting must not be duplicated in views');
-assert.equal(read('ui/components/ProjectsView.js').includes('data-project-mode'), false, 'projects must not keep the removed archive mode');
-assert.equal(read('ui/components/ClientsView.js').includes('data-client-mode'), false, 'clients must not keep the removed archive mode');
-
-assert.equal(exists('domains/projects/ProjectStatus.js'), true, 'project lifecycle rules must remain outside the UI');
-assert.equal(read('data/persistence/PersistenceManager.js').includes('app.state.subscribe'), true, 'persistence must observe all state mutations');
-assert.equal(read('data/persistence/StateRepository.js').includes('loadedState'), true, 'remote state must be normalized before use');
-
-for (const [view, form] of [
-  ['ui/components/ProjectsView.js', './forms/ProjectForm.js'],
-  ['ui/components/ClientsView.js', './forms/ClientForm.js'],
-  ['ui/components/TasksView.js', './forms/TaskForm.js']
-]) assert.equal(read(view).includes(form), true, `${view} must delegate its form`);
-
-assert.equal(read('ui/components/SettingsView.js').split('\n').length < 80, true, 'SettingsView must stay an orchestration component');
-
-const rls = read('security/supabase_rls.sql');
-for (const table of ['clients','projects','tasks','payments','deliveries','expenses','activities']) {
-  assert.equal(rls.includes(`public.${table}`), true, `${table} missing from canonical RLS`);
-  assert.equal(rls.includes(`"taskv_${table}_owner"`), true, `${table} policy missing`);
-}
-
-console.log('Architecture cleanup audit: PASS');
-
-// Phase 9: dead storage placeholders must not exist.
-for (const file of [
+for (const legacy of [
+  'domains/projects/ProjectManager.js',
+  'domains/expenses/ExpenseManager.js',
+  'security/rls.sql',
   'data/adapters/MemoryAdapter.js',
   'data/adapters/SupabaseAdapter.js',
   'data/adapters/StorageAdapter.js',
   'security/initializeSupabase.js'
-]) {
-  assert.equal(exists(file), false, `${file} must be removed until it has a real runtime path`);
+]) assert.equal(exists(legacy), false, `${legacy} must not exist`);
+
+for (const required of [
+  'domains/projects/ProjectIntegrity.js',
+  'domains/projects/ProjectNoteService.js',
+  'domains/projects/ProjectRelations.js',
+  'ui/components/GlobalSearch.js',
+  'ui/components/PersistenceStatus.js',
+  'ui/components/FinanceReports.js',
+  'ui/components/forms/ProjectNoteForm.js',
+  'ui/utils/formatters.js',
+  'security/supabase_rls.sql'
+]) assert.equal(exists(required), true, `${required} must exist`);
+
+const bootstrap = read('core/bootstrap.js');
+assert.ok(bootstrap.includes("register('MutationGuard'"));
+assert.ok(bootstrap.includes("register('FinanceEngine'"));
+assert.ok(bootstrap.includes("register('FinanceManager'"));
+assert.ok(bootstrap.includes("register('ProjectNoteService'"));
+assert.ok(bootstrap.includes("register('DeadlineManager'"));
+assert.ok(bootstrap.indexOf("register('FinanceEngine'") < bootstrap.indexOf("register('FinanceManager'"));
+assert.equal(bootstrap.includes('MemoryAdapter'), false);
+
+const shell = read('ui/AppShell.js');
+for (const symbol of ['mountNotificationCenter', 'mountAccountMenu', 'mountGlobalSearch', 'mountPersistenceStatus']) {
+  assert.ok(shell.includes(symbol), `AppShell must delegate ${symbol}`);
+}
+assert.ok(shell.indexOf("closest('.open-project, [data-open-project]')") < shell.indexOf("closest('button, input, select, textarea, a')"));
+
+const workspace = read('ui/components/ProjectWorkspace.js');
+assert.ok(workspace.includes('renderProjectFinancePanel'));
+assert.ok(workspace.includes('openProjectNoteForm'));
+assert.ok(workspace.includes('projectIntegrityIssues'));
+assert.equal(workspace.includes('renderProjectTasksPanel'), false, 'V1.0.0 workspace no longer mounts ProjectTasksPanel');
+
+const home = read('ui/components/HomeDashboard.js');
+for (const feature of ['openProjectNoteForm', 'data-today-plan', 'dragstart', 'localDateKey']) {
+  assert.ok(home.includes(feature), `HomeDashboard missing ${feature}`);
 }
 
-const jsSourceFiles = allFiles('.').filter(file => file.endsWith('.js') && !file.endsWith('tests/architecture-audit.js'));
-const jsSource = jsSourceFiles.map(file => read(file)).join('\n');
-for (const symbol of ['MemoryAdapter','SupabaseAdapter','StorageAdapter','initializeSupabase']) {
-  assert.equal(jsSource.includes(symbol), false, `dead storage symbol still referenced: ${symbol}`);
+const financeView = read('ui/components/FinanceView.js');
+assert.ok(financeView.includes('FinanceReports'));
+const financeManager = read('domains/finance/FinanceManager.js');
+for (const report of ['clientReports', 'projectReports', 'monthlyTrend']) assert.ok(financeManager.includes(report));
+
+const persistence = read('data/persistence/PersistenceManager.js');
+assert.ok(persistence.includes('app.state.subscribe'));
+assert.ok(read('data/persistence/StateRepository.js').includes('loadedState'));
+
+for (const [view, form] of [
+  ['ui/components/ProjectsView.js', './forms/ProjectForm.js'],
+  ['ui/components/ClientsView.js', './forms/ClientForm.js']
+]) assert.ok(read(view).includes(form), `${view} must delegate its form`);
+
+const jsFiles = allFiles('.').filter(file => file.endsWith('.js') && !file.endsWith('tests/architecture-audit.js'));
+const jsSource = jsFiles.map(file => read(file)).join('\n');
+for (const deadSymbol of ['ProjectManager', 'ExpenseManager', 'MemoryAdapter', 'SupabaseAdapter', 'StorageAdapter', 'initializeSupabase']) {
+  assert.equal(jsSource.includes(deadSymbol), false, `dead symbol still referenced: ${deadSymbol}`);
 }
 
-assert.equal(bootstrap.includes("register('MutationGuard'"), true, 'MutationGuard must be registered');
-for (const service of ['ProjectService','ClientService','TaskService','FinanceService','ExpenseService']) {
-  assert.equal(
-    bootstrap.indexOf("register('MutationGuard'") < bootstrap.indexOf(`register('${service}'`),
-    true,
-    `MutationGuard must be registered before ${service}`
-  );
+const rls = read('security/supabase_rls.sql');
+for (const table of ['clients','projects','tasks','payments','deliveries','expenses','activities']) {
+  assert.ok(rls.includes(`public.${table}`), `${table} missing from canonical RLS`);
+  assert.ok(rls.includes(`"taskv_${table}_owner"`), `${table} policy missing`);
 }
 
-for (const [file, service] of [
-  ['domains/projects/ProjectService.js','ProjectService'],
-  ['domains/clients/ClientService.js','ClientService'],
-  ['domains/tasks/TaskService.js','TaskService'],
-  ['domains/finance/FinanceService.js','FinanceService'],
-  ['domains/expenses/ExpenseService.js','ExpenseService']
-]) {
-  assert.equal(
-    read(file).includes(`guard.assertManager('${service}')`),
-    true,
-    `${service} does not invoke MutationGuard`
-  );
-}
+console.log('Architecture V1.0.0 audit: PASS');

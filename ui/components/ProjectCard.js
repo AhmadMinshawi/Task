@@ -1,6 +1,7 @@
 import { displayProjectStatus, projectStatusLabel } from '../../domains/projects/ProjectStatus.js';
+import { formatMoney } from '../utils/formatters.js';
 
-export function createProjectCard(project, finance) {
+export function createProjectCard(project, finance, issues = []) {
   const el = document.createElement('article');
   el.className = 'project-card';
   el.dataset.projectId = project.id;
@@ -16,7 +17,17 @@ export function createProjectCard(project, finance) {
   eyebrow.textContent = projectStatusLabel(status);
   const title = document.createElement('h3');
   title.textContent = project.name;
-  info.append(eyebrow, title);
+  const type = document.createElement('small');
+  type.className = `project-type project-type-${project.projectType === 'large' ? 'large' : 'quick'}`;
+  type.textContent = project.projectType === 'large' ? 'Large project' : 'Quick project';
+  info.append(eyebrow, title, type);
+  if (issues.length) {
+    const warning = document.createElement('small');
+    warning.className = 'project-integrity-badge';
+    warning.textContent = 'يحتاج مراجعة';
+    warning.title = issues.map(issue => issue.message).join('\n');
+    info.append(warning);
+  }
 
   const pin = document.createElement('button');
   pin.className = 'pin-button';
@@ -30,16 +41,16 @@ export function createProjectCard(project, finance) {
   const metrics = document.createElement('div');
   metrics.className = 'project-metrics';
   metrics.append(
-    metric('Price / video', money(project.pricePerVideo)),
-    metric('Paid', money(finance.paid)),
-    metric('Delivered', String(finance.deliveredVideos)),
-    metric('Remaining paid', String(finance.remainingPaidVideos))
+    metric('Price / video', formatMoney(project.pricePerVideo)),
+    metric('Paid', formatMoney(finance.paid)),
+    metric(finance.hasFixedTotal ? 'Still due' : 'Balance left', formatMoney(finance.hasFixedTotal ? finance.outstandingAmount : finance.remainingPaidValue)),
+    metric(finance.hasFixedTotal ? 'Videos left' : 'Funded videos left', String(finance.remainingProjectVideos))
   );
 
   const foot = document.createElement('div');
   foot.className = 'project-card-foot';
   const remaining = document.createElement('span');
-  remaining.textContent = `${money(finance.remainingPaidValue)} remaining value`;
+  remaining.textContent = finance.hasFixedTotal ? `${formatMoney(finance.grossProjectValue)} total value` : 'Open total · prepaid balance';
   const open = document.createElement('button');
   open.className = 'open-project';
   open.type = 'button';
@@ -87,8 +98,4 @@ function metric(label, value) {
   valueEl.textContent = value;
   wrapper.append(text, valueEl);
   return wrapper;
-}
-
-function money(value) {
-  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(Number(value) || 0);
 }

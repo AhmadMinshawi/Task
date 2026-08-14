@@ -1,7 +1,10 @@
 import { openClientForm } from './forms/ClientForm.js';
 import { sortRecords } from '../utils/sortRecords.js';
+import { activeRecords, isActiveRecord } from '../../core/recordState.js';
 
-export function renderClientsView(root, app) {
+export function renderClientsView(root, app, options = {}) {
+  const selectedClientId = typeof options === 'string' ? options : options.selectedClientId ?? null;
+  const openSelectedClient = typeof options === 'object' && options.openSelectedClient === true;
   let sortMode = 'newest';
   root.innerHTML = `
     <div class="page-heading">
@@ -16,7 +19,7 @@ export function renderClientsView(root, app) {
     if (!container) return;
     container.replaceChildren();
 
-    const clients = sortRecords(app.state.get().clients.filter(client => !client.deletedAt && !client.archivedAt), sortMode);
+    const clients = sortRecords(activeRecords(app.state.get().clients), sortMode);
     if (!clients.length) {
       const empty = document.createElement('div');
       empty.className = 'empty-state';
@@ -42,21 +45,36 @@ export function renderClientsView(root, app) {
           <p data-client-email></p>
           <small data-client-phone></small>
         </div>
+        <div class="client-projects" data-client-projects></div>
         <a class="secondary-action detail-link" data-client-profile target="_blank" rel="noopener noreferrer" hidden>Open profile</a>
       `;
       card.querySelector('[data-client-name]').textContent = client.name;
       card.querySelector('[data-client-industry]').textContent = client.industry || 'No industry added';
       card.querySelector('[data-client-email]').textContent = client.email || 'No email';
       card.querySelector('[data-client-phone]').textContent = client.phone || 'No phone';
+      const clientProjects = activeRecords(app.state.get().projects).filter(project => project.clientId === client.id);
+      const projectsRoot = card.querySelector('[data-client-projects]');
+      projectsRoot.innerHTML = clientProjects.length ? '<small>أعمال العميل</small>' : '<small>لا توجد مشروعات نشطة</small>';
+      for (const project of clientProjects) {
+        const projectButton = document.createElement('button');
+        projectButton.type = 'button';
+        projectButton.dataset.openProject = '';
+        projectButton.dataset.projectId = project.id;
+        projectButton.textContent = project.name || 'مشروع بدون اسم';
+        projectsRoot.append(projectButton);
+      }
       const profileLink = card.querySelector('[data-client-profile]');
       profileLink.hidden = !client.profileLink;
       if (client.profileLink) profileLink.href = client.profileLink;
       container.append(card);
     }
+    const selected = selectedClientId && container.querySelector(`[data-client-id="${CSS.escape(selectedClientId)}"]`);
+    if (selected) requestAnimationFrame(() => selected.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   };
 
   const handleClick = event => {
     if (event.target.closest('a')) return;
+    if (event.target.closest('[data-open-project]')) return;
     if (event.target.closest('[data-add-client]')) {
       openClientForm(app);
       return;
@@ -79,6 +97,10 @@ export function renderClientsView(root, app) {
   root.querySelector('[data-client-sort]').addEventListener('change', handleSort);
 
   render();
+  if (openSelectedClient && selectedClientId) {
+    const selectedClient = app.state.get().clients.find(client => client.id === selectedClientId && isActiveRecord(client));
+    if (selectedClient) openClientForm(app, selectedClient);
+  }
   const unsubscribe = app.state.subscribe(render);
   return () => {
     unsubscribe();

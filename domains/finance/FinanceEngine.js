@@ -7,29 +7,34 @@ export function createFinanceEngine() {
     const paid = payments.reduce((s, p) => s + Validators.money(p.amount), 0);
     const delivered = deliveries.reduce((s, d) => s + Validators.quantity(d.quantity), 0);
 
+    const hasFixedTotal = totalVideos > 0;
     const coveredVideos = price > 0 ? Math.floor(paid / price) : 0;
-    const remainingPaidVideos = Math.max(coveredVideos - delivered, 0);
-    const remainingPaidValue = remainingPaidVideos * price;
-    const remainingProjectVideos = Math.max(totalVideos - delivered, 0);
+    const consumedValue = delivered * price;
+    const remainingPaidValue = Math.max(paid - consumedValue, 0);
+    const remainingPaidVideos = price > 0 ? Math.floor(remainingPaidValue / price) : 0;
+    const remainingProjectVideos = hasFixedTotal ? Math.max(totalVideos - delivered, 0) : remainingPaidVideos;
+    const grossProjectValue = hasFixedTotal ? price * totalVideos : 0;
+    const outstandingAmount = hasFixedTotal ? Math.max(grossProjectValue - paid, 0) : 0;
 
     return Object.freeze({
-      grossProjectValue: price * totalVideos,
+      hasFixedTotal,
+      grossProjectValue,
       paid,
       deliveredVideos: delivered,
+      consumedValue,
       coveredVideos,
       remainingPaidVideos,
       remainingPaidValue,
-      remainingProjectVideos
+      remainingProjectVideos,
+      outstandingAmount
     });
   }
 
-  function monthly(payments = [], expenses = [], month, quickTasks = []) {
+  function monthly(payments = [], expenses = [], month) {
     const inMonth = item => String(item.date ?? item.createdAt ?? '').slice(0, 7) === month;
     const paymentIncome = payments.filter(inMonth).reduce((s, p) => s + Validators.money(p.amount), 0);
-    const taskIncome = quickTasks
-      .filter(task => task.status === 'done' && inMonth({ ...task, date: task.incomeDate || task.dueDate || task.updatedAt }))
-      .reduce((sum, task) => sum + Validators.money(task.amount), 0);
-    const collected = paymentIncome + taskIncome;
+    const taskIncome = 0;
+    const collected = paymentIncome;
     const spent = expenses.filter(inMonth).reduce((s, e) => s + Validators.money(e.amount), 0);
 
     return Object.freeze({
